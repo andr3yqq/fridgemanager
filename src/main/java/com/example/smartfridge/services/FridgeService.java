@@ -31,6 +31,25 @@ public class FridgeService {
 
     }
 
+    public ItemRecordDto updateItem(ItemRecordDto itemRecordDto) {
+        ItemRecord itemRecord = fridgeRepository.findById(itemRecordDto.getId()).orElse(null);
+        if (itemRecord != null) {
+            itemRecord = itemMapper.toItemRecord(itemRecordDto);
+            fridgeRepository.save(itemRecord);
+            return itemMapper.toItemRecordDto(itemRecord);
+        }
+        return null;
+    }
+
+    public ItemRecordDto deleteItem(Long id) {
+        ItemRecord itemRecord = fridgeRepository.findById(id).orElse(null);
+        if (itemRecord != null) {
+            fridgeRepository.delete(itemRecord);
+            return itemMapper.toItemRecordDto(itemRecord);
+        }
+        return null;
+    }
+
 
 
 }

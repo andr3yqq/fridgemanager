@@ -33,4 +33,10 @@ public class FridgeController {
         return ResponseEntity.created(URI.create("/gym/records/" + createdItem.getId())).body(createdItem);
     }
 
+    @DeleteMapping("/items/{id}")
+    public ResponseEntity<ItemRecordDto> deleteItem(@PathVariable long id) {
+        ItemRecordDto deletedItem = fridgeService.deleteItem(id);
+        return ResponseEntity.ok(deletedItem);
+    }
+
 }
