@@ -24,6 +24,10 @@ public class ItemRecord {
     @Column
     private String description;
     @Column
+    private Integer quantity;
+    @Column
+    private String category;
+    @Column
     private LocalDate expirationDate;
     @Column
     private LocalDate buyingDate;

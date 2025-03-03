@@ -12,6 +12,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
+@CrossOrigin(origins = "http://localhost:3000")
 @RequestMapping("/api")
 public class FridgeController {
 
@@ -30,7 +31,7 @@ public class FridgeController {
     @PostMapping("/items")
     public ResponseEntity<ItemRecordDto> createItem(@RequestBody ItemRecordDto itemRecordDto) {
         ItemRecordDto createdItem = fridgeService.createItem(itemRecordDto);
-        return ResponseEntity.created(URI.create("/gym/records/" + createdItem.getId())).body(createdItem);
+        return ResponseEntity.created(URI.create("/items/" + createdItem.getId())).body(createdItem);
     }
 
     @DeleteMapping("/items/{id}")
@@ -38,5 +39,4 @@ public class FridgeController {
         ItemRecordDto deletedItem = fridgeService.deleteItem(id);
         return ResponseEntity.ok(deletedItem);
     }
-
 }

@@ -16,6 +16,8 @@ public class ItemRecordDto {
     private Long id;
     private String name;
     private String description;
+    private Integer quantity;
+    private String category;
     private LocalDate expirationDate;
     private LocalDate buyingDate;
 }
