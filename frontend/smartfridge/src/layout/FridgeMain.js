@@ -1,6 +1,8 @@
 import Header from "./Header";
 import Footer from "./Footer";
 import React, {useEffect, useState} from "react";
+import './FridgeMain.css';
+import addItem from "./AddItem";
 
 function FridgeMain() {
     const [fridgeItems, setFridgeItems] = useState([
@@ -36,6 +38,20 @@ function FridgeMain() {
 
     const [filter, setFilter] = useState("");
 
+    const [viewItemsToggle, setViewItemsToggle] = useState(true);
+
+    const [addItemsToggle, setAddItemsToggle] = useState(false);
+
+    const handleViewToggle = () => {
+        setViewItemsToggle(true);
+        setAddItemsToggle(false);
+    }
+
+    const handleAddToggle = () => {
+        setViewItemsToggle(false);
+        setAddItemsToggle(true);
+    }
+
     const handleAddItem = () => {
         if (newItem.name.trim() === "") return;
         setFridgeItems([
@@ -68,6 +84,14 @@ function FridgeMain() {
 
     const handleRemoveItem = (id) => {
         setFridgeItems(fridgeItems.filter(item => item.id !== id));
+        const requestOptions = {
+            method: 'DELETE'
+        };
+        fetch(`http://localhost:8080/api/items/${id}`, requestOptions)
+            .then(response => response.json())
+            .catch((err) => {
+                console.log(err)
+            })
     };
 
     // Calculate days until expiry
@@ -80,11 +104,18 @@ function FridgeMain() {
     };
 
     // Get text color based on expiry date
-    const getExpiryColor = (expiryDate) => {
+    /*const getExpiryColor = (expiryDate) => {
         const days = getDaysUntilExpiry(expiryDate);
         if (days < 0) return "text-red-600";
         if (days < 3) return "text-orange-500";
         return "text-green-600";
+    };*/
+
+    const getExpiryColor = (expiryDate) => {
+        const days = getDaysUntilExpiry(expiryDate);
+        if (days < 0) return "#DC2626";
+        if (days < 3) return "rgb(249 115 22)";
+        return "#059669";
     };
 
     // Filter items based on search input
@@ -93,35 +124,53 @@ function FridgeMain() {
         item.category.toLowerCase().includes(filter.toLowerCase())
     );
     return (
-        <div className="max-w-4xl mx-auto p-4">
+        <div className="mainFridge">
+
+            <div className="navRow">
+                <button
+                    className="navButton"
+                    onClick={handleViewToggle}
+                > All items
+                </button>
+                <button
+                    className="navButton"
+                    onClick={handleAddToggle}
+                > Add item
+                </button>
+            </div>
 
             {/* Add new item form */}
-            <div className="bg-gray-100 p-4 rounded-lg mb-6">
-                <h2 className="text-lg font-semibold mb-2">Add New Item</h2>
-                <div className="flex flex-wrap gap-2">
+            {addItemsToggle ? <div className="addItem">
+                <h2 className="addItemHead">Add New Item</h2>
+                <div className="addItemElements">
+                    <label>Item Name</label>
                     <input
                         type="text"
                         placeholder="Item name"
-                        className="p-2 border rounded"
+                        className="addItemInput20"
                         value={newItem.name}
+                        name="itemName"
                         onChange={(e) => setNewItem({...newItem, name: e.target.value})}
                     />
+                    <label>Description</label>
                     <input
                         type="text"
                         placeholder="Item description"
-                        className="p-2 border rounded"
+                        className="addItemBaseInput"
                         value={newItem.description}
                         onChange={(e) => setNewItem({...newItem, description: e.target.value})}
                     />
+                    <label>Quantity</label>
                     <input
                         type="number"
                         min="1"
-                        className="p-2 border rounded w-20"
+                        className="addItemCalendarInput"
                         value={newItem.quantity}
                         onChange={(e) => setNewItem({...newItem, quantity: parseInt(e.target.value)})}
                     />
+                    <label>Category</label>
                     <select
-                        className="p-2 border rounded"
+                        className="addItemInput20"
                         value={newItem.category}
                         onChange={(e) => setNewItem({...newItem, category: e.target.value})}
                     >
@@ -133,77 +182,90 @@ function FridgeMain() {
                         <option value="Leftovers">Leftovers</option>
                         <option value="Other">Other</option>
                     </select>
+                    <label>Expiration Date</label>
                     <input
                         type="date"
-                        className="p-2 border rounded"
+                        className="addItemCalendarInput"
                         value={newItem.expirationDate}
                         onChange={(e) => setNewItem({...newItem, expirationDate: e.target.value})}
                     />
+                    <label>Buying Date</label>
                     <input
                         type="date"
-                        className="p-2 border rounded"
+                        className="addItemCalendarInput"
                         value={newItem.buyingDate}
                         onChange={(e) => setNewItem({...newItem, buyingDate: e.target.value})}
                     />
                     <button
-                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                        className="addItemButton"
                         onClick={handleAddItem}
                     >
                         Add
                     </button>
                 </div>
-            </div>
+            </div> : null }
 
-            {/* Search filter */}
-            <div className="mb-4">
-                <input
-                    type="text"
-                    placeholder="Search items or categories..."
-                    className="p-2 border rounded w-full"
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
-                />
-            </div>
-
-            {/* Items list */}
-            <div className="bg-white shadow rounded-lg">
-                {filteredItems.length === 0 ? (
-                    <p className="p-4 text-center text-gray-500">No items in your fridge.</p>
-                ) : (
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                        <tr>
-                            <th className="p-4 text-left text-sm font-medium text-gray-500">Item</th>
-                            <th className="p-4 text-left text-sm font-medium text-gray-500">Quantity</th>
-                            <th className="p-4 text-left text-sm font-medium text-gray-500">Expires</th>
-                            <th className="p-4 text-left text-sm font-medium text-gray-500">Action</th>
-                        </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                        {filteredItems.map(item => (
-                            <tr key={item.id}>
-                                <td className="p-4">{item.name}</td>
-                                <td className="p-4">{item.quantity}</td>
-                                <td className={`p-4 ${getExpiryColor(item.expirationDate)}`}>
-                                    {item.expirationDate}
-                                    <span className="text-sm ml-2">
+            { viewItemsToggle ?
+                <div className="viewAllItems">
+                    <div className="mb-4">
+                    <input
+                        type="text"
+                        placeholder="Search items or categories..."
+                        className="searchBar"
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value)}
+                    />
+                    </div>
+                    <div className="items">
+                    {filteredItems.length === 0 ? (
+                        <p className="noItems">No items in your fridge.</p>
+                    ) : (
+                        <table className="itemsTable">
+                            <thead className="itemsTableHeadBase">
+                            <tr>
+                                <th className="itemsTableHead">Item</th>
+                                <th className="itemsTableHead">Quantity</th>
+                                <th className="itemsTableHead">Category</th>
+                                <th className="itemsTableHead">Expires</th>
+                                <th className="itemsTableHead">Buying date</th>
+                                <th className="itemsTableHead">Action</th>
+                            </tr>
+                            </thead>
+                            <tbody className="itemsTableBody">
+                            {filteredItems.map(item => (
+                                <tr key={item.id}>
+                                    <td className="itemsTableData">{item.name}</td>
+                                    <td className="itemsTableData">{item.quantity}</td>
+                                    <td className="itemsTableData">
+                                        <span className="itemsCategory">{item.category}</span>
+                                    </td>
+                                    <td className={`itemsTableData`} style={{color: getExpiryColor(item.expirationDate)}}>
+                                        {item.expirationDate}
+                                        <span className="text-sm ml-2">
                       ({getDaysUntilExpiry(item.expirationDate)} days)
                     </span>
-                                </td>
-                                <td className="p-4">
-                                    <button
-                                        className="text-red-500 hover:text-red-700"
-                                        onClick={() => handleRemoveItem(item.id)}
-                                    >
-                                        Remove
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                        </tbody>
-                    </table>
-                )}
-            </div>
+                                    </td>
+                                    <td className="itemsTableData">{item.buyingDate}</td>
+                                    <td className="p-4">
+                                        <button
+                                                className="itemsRemoveButton"
+                                            onClick={() => handleRemoveItem(item.id)}
+                                        >
+                                            Remove
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                            </tbody>
+                        </table>
+                    )}
+                    </div>
+                </div> : null}
+            {/* Search filter */}
+
+
+            {/* Items list */}
+
         </div>
     );
 }

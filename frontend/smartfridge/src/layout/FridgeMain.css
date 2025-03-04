@@ -1,0 +1,154 @@
+.mainFridge {
+    min-height: 86vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.navRow {
+    display: flex;
+    flex-direction: row;
+    min-width: 100%;
+    height: 7vh;
+    background-color: #F3F4F6;
+}
+
+.navButton {
+    border: 0;
+    margin-right: 2vh;
+    margin-left: 3vh;
+    font-size: 0.875rem;
+}
+
+.viewAllItems {
+    align-items: center;
+    text-align: center;
+}
+
+/*.searchBar {
+    min-width: 75vh;
+    height: 5vh;
+    border-radius: 15px;
+    border-color: lightgray;
+    font-size: 15px;
+}*/
+
+.searchBar {
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    border-width: 1px;
+    width: 75%;
+}
+
+.itemsTable {
+    border-top-width: 1px;
+    border-color: #E5E7EB;
+    min-width: 100%;
+}
+
+.itemsCategory {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    border-radius: 0.25rem;
+    background-color: #F3F4F6;
+}
+
+.items {
+    border-radius: 0.5rem;
+    background-color: #ffffff;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.noItems {
+    padding: 1rem;
+    text-align: center;
+    color: #6B7280;
+}
+
+.itemsTableHeadBase {
+    background-color: #F9FAFB;
+}
+
+.itemsTableHead {
+    padding: 1rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    text-align: left;
+    color: #6B7280;
+}
+
+.itemsTableBody {
+    border-top-width: 1px;
+    border-color: #E5E7EB;
+}
+
+.itemsTableData {
+    padding: 1rem;
+}
+
+.itemsRemoveButton {
+    background-color: white;
+    border: white;
+    color: #EF4444;
+}
+
+.itemsRemoveButton:hover {
+    color: #B91C1C;
+}
+
+.addItem {
+     padding: 1rem;
+     margin-bottom: 1.5rem;
+     border-radius: 0.5rem;
+     background-color: #F3F4F6;
+    display: flex;
+    flex-direction: column;
+ }
+
+.addItemElements {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.addItemBaseInput {
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    border-width: 1px;
+    width: 50%;
+}
+
+.addItemInput20 {
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    border-width: 1px;
+    width:20%;
+}
+
+.addItemCalendarInput {
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    border-width: 1px;
+    width:100px;
+}
+
+.addItemHead {
+     margin-bottom: 0.5rem;
+     font-size: 1.125rem;
+     line-height: 1.75rem;
+     font-weight: 600;
+ }
+
+.addItemButton {
+    width: 3%;
+    text-align: center;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    border-radius: 0.25rem;
+    color: #ffffff;
+    background-color: #3B82F6;
+}
