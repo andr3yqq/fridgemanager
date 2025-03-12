@@ -28,6 +28,8 @@ public class ItemRecord {
     @Column
     private String category;
     @Column
+    private Double price;
+    @Column
     private LocalDate expirationDate;
     @Column
     private LocalDate buyingDate;

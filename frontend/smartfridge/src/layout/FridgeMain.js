@@ -182,6 +182,13 @@ function FridgeMain() {
                         <option value="Leftovers">Leftovers</option>
                         <option value="Other">Other</option>
                     </select>
+                    <label>Price</label>
+                    <input
+                        type="number"
+                        className="addItemCalendarInput"
+                        value={newItem.price}
+                        onChange={(e) => setNewItem({...newItem, price: parseFloat(e.target.value)})}
+                    />
                     <label>Expiration Date</label>
                     <input
                         type="date"
@@ -226,6 +233,8 @@ function FridgeMain() {
                                 <th className="itemsTableHead">Item</th>
                                 <th className="itemsTableHead">Quantity</th>
                                 <th className="itemsTableHead">Category</th>
+                                <th className="itemsTableHead">Price (1p)</th>
+                                <th className="itemsTableHead">Total price</th>
                                 <th className="itemsTableHead">Expires</th>
                                 <th className="itemsTableHead">Buying date</th>
                                 <th className="itemsTableHead">Action</th>
@@ -239,6 +248,8 @@ function FridgeMain() {
                                     <td className="itemsTableData">
                                         <span className="itemsCategory">{item.category}</span>
                                     </td>
+                                    <td className="itemsTableData">{item.price}</td>
+                                    <td className="itemsTableData"></td>
                                     <td className={`itemsTableData`} style={{color: getExpiryColor(item.expirationDate)}}>
                                         {item.expirationDate}
                                         <span className="text-sm ml-2">
