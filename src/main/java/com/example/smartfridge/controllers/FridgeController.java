@@ -4,6 +4,7 @@ package com.example.smartfridge.controllers;
 import com.example.smartfridge.dtos.ItemRecordDto;
 import com.example.smartfridge.services.FridgeService;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.cache.spi.support.AbstractReadWriteAccess;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,13 +26,19 @@ public class FridgeController {
 
     @GetMapping("/items/{id}")
     public ResponseEntity<ItemRecordDto> getItem(@PathVariable long id) {
-        return ResponseEntity.ok(fridgeService.getItemById(id));
+        ItemRecordDto itemRecordDto = fridgeService.getItemById(id);
+        return ResponseEntity.ok(itemRecordDto);
     }
 
     @PostMapping("/items")
     public ResponseEntity<ItemRecordDto> createItem(@RequestBody ItemRecordDto itemRecordDto) {
         ItemRecordDto createdItem = fridgeService.createItem(itemRecordDto);
         return ResponseEntity.created(URI.create("/items/" + createdItem.getId())).body(createdItem);
+    }
+
+    @PutMapping("/items/{id}")
+    public ResponseEntity<ItemRecordDto> updateItem(@RequestBody ItemRecordDto itemRecordDto) {
+        return ResponseEntity.ok(fridgeService.updateItem(itemRecordDto));
     }
 
     @DeleteMapping("/items/{id}")

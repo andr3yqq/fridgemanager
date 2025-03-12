@@ -94,6 +94,29 @@ function FridgeMain() {
             })
     };
 
+    const handleUpdateItem = (itemToUpdate) => {
+        itemToUpdate.quantity--;
+        if (itemToUpdate.quantity <= 0) {
+            handleRemoveItem(itemToUpdate.id);
+        }
+        else
+        {
+            setFridgeItems(fridgeItems.map(item =>
+                item.id === itemToUpdate.id ? itemToUpdate : item
+            ));
+            const requestOptions = {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(itemToUpdate)
+            }
+            fetch(`http://localhost:8080/api/items/${itemToUpdate.id}`, requestOptions)
+                .then(response => response.json())
+                .catch((err) => {
+                    console.log(err)
+                })
+        }
+    }
+
     // Calculate days until expiry
     const getDaysUntilExpiry = (expiryDate) => {
         const today = new Date();
@@ -244,12 +267,22 @@ function FridgeMain() {
                             {filteredItems.map(item => (
                                 <tr key={item.id}>
                                     <td className="itemsTableData">{item.name}</td>
-                                    <td className="itemsTableData">{item.quantity}</td>
+                                    <td className="itemsTableData">{item.quantity}
+                                        <button type="button" className="arrow-button" onClick={() => handleUpdateItem(item)}>
+                                            <svg className="icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
+                                                 fill="none" viewBox="0 0 14 10">
+                                                <path stroke="currentColor" strokeLinecap="round"
+                                                      strokeLinejoin="round" strokeWidth="2"
+                                                      d="M7 9V1m0 8l-4-4m4 4l4-4"/>
+                                            </svg>
+                                            <span className="sr-only">Icon description</span>
+                                        </button>
+                                    </td>
                                     <td className="itemsTableData">
                                         <span className="itemsCategory">{item.category}</span>
                                     </td>
                                     <td className="itemsTableData">{item.price}</td>
-                                    <td className="itemsTableData"></td>
+                                    <td className="itemsTableData">{item.price * item.quantity}</td>
                                     <td className={`itemsTableData`} style={{color: getExpiryColor(item.expirationDate)}}>
                                         {item.expirationDate}
                                         <span className="text-sm ml-2">
