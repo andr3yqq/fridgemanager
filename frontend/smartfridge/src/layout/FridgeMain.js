@@ -13,6 +13,7 @@ function FridgeMain() {
         { id: 5, name: "Yogurt", quantity: 4, category: "Dairy", expiryDate: "2025-03-12" },
         { id: 6, name: "Apples", quantity: 6, category: "Fruits", expiryDate: "2025-03-20" }*/
     ]);
+    const [activityLogs, setActivityLogs] = useState([]);
 
     useEffect(() => {
         fetch('http://localhost:8080/api/items')
@@ -25,6 +26,16 @@ function FridgeMain() {
             .catch((err) => {
                 console.log(err)
             })
+        fetch('http://localhost:8080/api/logs')
+            .then((result) => {
+                return result.json();
+            })
+            .then((data) => {
+                setActivityLogs(data);
+            })
+            .catch((err) => {
+                console.log(err)
+            });
     }, []);
 
     const [newItem, setNewItem] = useState({
@@ -42,15 +53,49 @@ function FridgeMain() {
 
     const [addItemsToggle, setAddItemsToggle] = useState(false);
 
+    const [activityLogsToggle, setActivityLogsToggle] = useState(false);
+
     const handleViewToggle = () => {
         setViewItemsToggle(true);
         setAddItemsToggle(false);
+        setActivityLogsToggle(false);
     }
 
     const handleAddToggle = () => {
         setViewItemsToggle(false);
         setAddItemsToggle(true);
+        setActivityLogsToggle(false);
     }
+
+    const handleActivityLogsToggle = () => {
+        setViewItemsToggle(false);
+        setAddItemsToggle(false);
+        setActivityLogsToggle(true);
+    }
+
+    const addActivityLog = (action, itemName, details) => {
+        const newLog = {
+            timestamp: new Date().toISOString(),
+            action: action,
+            itemName: itemName,
+            details: details
+        };
+
+        // Add to state for immediate display
+        setActivityLogs([newLog, ...activityLogs]);
+
+        // Send to backend
+        const requestOptions = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newLog)
+        };
+        fetch('http://localhost:8080/api/logs', requestOptions)
+            .then(response => response.json())
+            .catch((err) => {
+                console.log(err)
+            });
+    };
 
     const handleAddItem = () => {
         if (newItem.name.trim() === "") return;
@@ -58,6 +103,11 @@ function FridgeMain() {
             ...fridgeItems,
             { ...newItem, id: fridgeItems.length + 1 }
         ]);
+        addActivityLog(
+            "ADDED",
+            newItem.name,
+            `Added ${newItem.quantity} ${newItem.name} (${newItem.category}) with expiry date ${newItem.expirationDate}`
+        );
         setNewItem({
             name: "",
             description: "",
@@ -83,6 +133,16 @@ function FridgeMain() {
     }
 
     const handleRemoveItem = (id) => {
+        const itemToRemove = fridgeItems.find(item => item.id === id);
+
+        // Log the activity
+        if (itemToRemove) {
+            addActivityLog(
+                "REMOVED",
+                itemToRemove.name,
+                `Removed ${itemToRemove.quantity} ${itemToRemove.name} from fridge`
+            );
+        }
         setFridgeItems(fridgeItems.filter(item => item.id !== id));
         const requestOptions = {
             method: 'DELETE'
@@ -95,12 +155,18 @@ function FridgeMain() {
     };
 
     const handleUpdateItem = (itemToUpdate) => {
+        const originalQuantity = itemToUpdate.quantity;
         itemToUpdate.quantity--;
         if (itemToUpdate.quantity <= 0) {
             handleRemoveItem(itemToUpdate.id);
         }
         else
         {
+            addActivityLog(
+                "CONSUMED",
+                itemToUpdate.name,
+                `Consumed 1 ${itemToUpdate.name} (${originalQuantity} → ${itemToUpdate.quantity} remaining)`
+            );
             setFridgeItems(fridgeItems.map(item =>
                 item.id === itemToUpdate.id ? itemToUpdate : item
             ));
@@ -116,6 +182,11 @@ function FridgeMain() {
                 })
         }
     }
+
+    const formatTimestamp = (timestamp) => {
+        const date = new Date(timestamp);
+        return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+    };
 
     // Calculate days until expiry
     const getDaysUntilExpiry = (expiryDate) => {
@@ -146,6 +217,12 @@ function FridgeMain() {
         item.name.toLowerCase().includes(filter.toLowerCase()) ||
         item.category.toLowerCase().includes(filter.toLowerCase())
     );
+
+    const filteredLogs = activityLogs.filter(log =>
+        log.itemName.toLowerCase().includes(filter.toLowerCase()) ||
+        log.action.toLowerCase().includes(filter.toLowerCase())
+    );
+
     return (
         <div className="mainFridge">
 
@@ -159,6 +236,11 @@ function FridgeMain() {
                     className="navButton"
                     onClick={handleAddToggle}
                 > Add item
+                </button>
+                <button
+                    className="navButton"
+                    onClick={handleActivityLogsToggle}
+                > Activity Logs
                 </button>
             </div>
 
@@ -305,6 +387,55 @@ function FridgeMain() {
                     )}
                     </div>
                 </div> : null}
+            {/* Activity Logs */}
+            {activityLogsToggle ? (
+                <div className="viewAllItems">
+                    <div className="mb-4">
+                        <input
+                            type="text"
+                            placeholder="Search logs by item name or action..."
+                            className="searchBar"
+                            value={filter}
+                            onChange={(e) => setFilter(e.target.value)}
+                        />
+                    </div>
+                    <div className="items">
+                        <h2 className="addItemHead">Activity Logs</h2>
+                        {filteredLogs.length === 0 ? (
+                            <p className="noItems">No activity logs found.</p>
+                        ) : (
+                            <table className="itemsTable">
+                                <thead className="itemsTableHeadBase">
+                                <tr>
+                                    <th className="itemsTableHead">Time</th>
+                                    <th className="itemsTableHead">Action</th>
+                                    <th className="itemsTableHead">Item</th>
+                                    <th className="itemsTableHead">Details</th>
+                                </tr>
+                                </thead>
+                                <tbody className="itemsTableBody">
+                                {filteredLogs.map((log, index) => (
+                                    <tr key={index}>
+                                        <td className="itemsTableData">{formatTimestamp(log.timestamp)}</td>
+                                        <td className="itemsTableData">
+                                            <span className={`itemsCategory ${
+                                                log.action === "ADDED" ? "bg-green-100 text-green-800" :
+                                                    log.action === "REMOVED" ? "bg-red-100 text-red-800" :
+                                                        "bg-yellow-100 text-yellow-800"
+                                            }`}>
+                                                {log.action}
+                                            </span>
+                                        </td>
+                                        <td className="itemsTableData">{log.itemName}</td>
+                                        <td className="itemsTableData">{log.details}</td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                </div>
+            ) : null}
             {/* Search filter */}
 
 
