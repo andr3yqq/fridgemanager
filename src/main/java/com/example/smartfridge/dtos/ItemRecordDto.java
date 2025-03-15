@@ -21,4 +21,5 @@ public class ItemRecordDto {
     private Double price;
     private LocalDate expirationDate;
     private LocalDate buyingDate;
+    private Long fridgeId;
 }

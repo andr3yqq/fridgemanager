@@ -5,22 +5,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDate;
-
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
-public class UserLogRecordDto {
+public class UserResponseDto {
     private Long id;
-
-    private LocalDate timestamp;
-
-    private String action;
-
-    private String itemName;
-
-    private String details;
-
-    private Long userId;
+    private String username;
+    private String email;
+    private String role;
+    private Long fridgeId;
 }

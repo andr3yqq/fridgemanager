@@ -33,4 +33,7 @@ public class ItemRecord {
     private LocalDate expirationDate;
     @Column
     private LocalDate buyingDate;
+    @ManyToOne
+    @JoinColumn(name = "fridge_id")
+    private Fridge fridgeId;
 }

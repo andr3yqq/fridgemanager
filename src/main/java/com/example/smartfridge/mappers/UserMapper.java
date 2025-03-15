@@ -1,8 +1,8 @@
 package com.example.smartfridge.mappers;
 
-import com.example.smartfridge.dtos.ItemRecordDto;
+import com.example.smartfridge.dtos.UserDto;
 import com.example.smartfridge.entities.Fridge;
-import com.example.smartfridge.entities.ItemRecord;
+import com.example.smartfridge.entities.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
@@ -11,18 +11,17 @@ import org.mapstruct.Named;
 import java.util.List;
 
 @Mapper(componentModel = "spring")
-public interface ItemMapper {
+public interface UserMapper {
 
     @Mapping(source = "fridgeId.id", target = "fridgeId")
-    ItemRecordDto toItemRecordDto(ItemRecord itemRecord);
+    UserDto toUserDto(User user);
+    @Mapping(source = "fridgeId", target = "fridgeId", qualifiedByName = "fridgeIdToFridge")
+    User toUser(UserDto userDto);
+    @Mapping(source = "fridgeId", target = "fridgeId", qualifiedByName = "fridgeIdToFridge")
+    User updateEntityFromDto(UserDto userDto, @MappingTarget User user);
 
     @Mapping(source = "fridgeId", target = "fridgeId", qualifiedByName = "fridgeIdToFridge")
-    ItemRecord toItemRecord(ItemRecordDto itemRecordDto);
-
-    List<ItemRecordDto> toItemRecordDtoList(List<ItemRecord> itemRecords);
-
-    @Mapping(source = "fridgeId", target = "fridgeId", qualifiedByName = "fridgeIdToFridge")
-    void updateItemRecord(ItemRecordDto itemRecordDto, @MappingTarget ItemRecord itemRecord);
+    List<UserDto> toUserDtoList(List<User> users);
 
     @Named("fridgeIdToFridge")
     default Fridge fridgeIdToFridge(Long id) {
@@ -33,5 +32,4 @@ public interface ItemMapper {
         fridge.setId(id);
         return fridge;
     }
-
 }

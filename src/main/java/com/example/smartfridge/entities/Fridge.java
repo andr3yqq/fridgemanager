@@ -6,28 +6,20 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDate;
-
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 @Entity
-@Table(name = "user_logs")
-public class UserLogRecord {
-
+@Table(name = "fridges")
+public class Fridge {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @Column(name = "fridge_id")
     private Long id;
     @Column
-    private LocalDate timestamp;
-    @Column
-    private String action;
-    @Column
-    private String itemName;
-    @Column
-    private String details;
-    @ManyToOne
+    private String name;
+    @OneToOne
     @JoinColumn(name = "user_id")
-    private User user;
+    private User owner;
 }
