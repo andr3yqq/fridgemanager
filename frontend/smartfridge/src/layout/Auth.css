@@ -1,0 +1,16 @@
+.LoginPage {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-top: 4rem;
+}
+.LoginPageBody {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    align-items: center;
+}
+.LoginPage > input {
+    margin-bottom: 2rem;
+}

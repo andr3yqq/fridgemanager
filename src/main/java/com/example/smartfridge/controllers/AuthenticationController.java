@@ -4,7 +4,8 @@ package com.example.smartfridge.controllers;
 import com.example.smartfridge.dtos.UserDto;
 import com.example.smartfridge.dtos.UserResponseDto;
 import com.example.smartfridge.entities.User;
-import com.example.smartfridge.services.AuthentificationService;
+import com.example.smartfridge.security.JwtProvider;
+import com.example.smartfridge.services.AuthenticationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -14,10 +15,11 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @CrossOrigin(origins = "http://localhost:3000")
 @RequestMapping("/auth")
-public class AuthentificationController {
+public class AuthenticationController {
 
-    private final AuthentificationService authService;
+    private final AuthenticationService authService;
     private final PasswordEncoder passwordEncoder;
+    private final JwtProvider jwtProvider;
 
     @PostMapping("/register")
     public ResponseEntity<UserResponseDto> register(@RequestBody UserDto userDto) {
@@ -28,7 +30,8 @@ public class AuthentificationController {
                 registeredUser.getUsername(),
                 registeredUser.getEmail(),
                 registeredUser.getRole(),
-                registeredUser.getFridgeId() != null ? registeredUser.getFridgeId().getId() : null
+                registeredUser.getFridgeId() != null ? registeredUser.getFridgeId().getId() : null,
+                jwtProvider.generateToken(registeredUser.getUsername())
         );
 
         return ResponseEntity.ok(responseDto);
@@ -44,8 +47,10 @@ public class AuthentificationController {
                 user.getUsername(),
                 user.getEmail(),
                 user.getRole(),
-                user.getFridgeId() != null ? user.getFridgeId().getId() : null
+                user.getFridgeId() != null ? user.getFridgeId().getId() : null,
+                jwtProvider.generateToken(user.getUsername())
         );
+
 
         return ResponseEntity.ok(responseDto);
     }

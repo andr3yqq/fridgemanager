@@ -1,23 +1,33 @@
-import logo from './layout/logo.svg';
 import './layout/App.css';
+import Header from "./layout/Header";
+import FridgeMain from "./layout/FridgeMain";
+import Footer from "./layout/Footer";
+import React from "react";
+import LoginPage from "./layout/LoginPage";
+import SignupPage from "./layout/SignupPage";
 
 function App() {
+    const token = localStorage.getItem("authToken");
+
+    const requestOptions = {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    };
+    fetch('http://localhost:8080/auth/login', requestOptions)
+        .then(response => response.json())
+        .then(data => console.log(data))
+        .catch(error => console.error("Error:", error));
+
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <Header />
+      <LoginPage />
+      <FridgeMain />
+      <Footer />
     </div>
   );
 }

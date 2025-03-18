@@ -15,4 +15,5 @@ public class UserResponseDto {
     private String email;
     private String role;
     private Long fridgeId;
+    private String token;
 }
