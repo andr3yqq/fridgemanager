@@ -51,7 +51,7 @@ public class AuthenticationController {
                 jwtProvider.generateToken(user.getUsername())
         );
 
-
+    
         return ResponseEntity.ok(responseDto);
     }
 

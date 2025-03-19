@@ -3,6 +3,8 @@ import Footer from "./Footer";
 import React, {useEffect, useState} from "react";
 import './FridgeMain.css';
 import addItem from "./AddItem";
+import {addActivityLog} from "./ActivityLogs";
+import defaultHeaders from "./defaultHeaders";
 
 function FridgeMain() {
     const [fridgeItems, setFridgeItems] = useState([
@@ -15,8 +17,9 @@ function FridgeMain() {
     ]);
     const [activityLogs, setActivityLogs] = useState([]);
 
+
     useEffect(() => {
-        fetch('http://localhost:8080/api/items')
+        fetch('http://localhost:8080/api/items', {headers: defaultHeaders})
             .then((result) => {
                 return result.json();
             })
@@ -26,7 +29,7 @@ function FridgeMain() {
             .catch((err) => {
                 console.log(err)
             })
-        fetch('http://localhost:8080/api/logs')
+       /* fetch('http://localhost:8080/api/logs', {headers: defaultHeaders})
             .then((result) => {
                 return result.json();
             })
@@ -35,17 +38,17 @@ function FridgeMain() {
             })
             .catch((err) => {
                 console.log(err)
-            });
+            });*/
     }, []);
 
-    const [newItem, setNewItem] = useState({
+    /*const [newItem, setNewItem] = useState({
         name: "",
         description: "",
         quantity: 1,
         category: "Other",
         expirationDate: new Date().toISOString().split('T')[0],
         buyingDate: new Date().toISOString().split('T')[0]
-    });
+    });*/
 
     const [filter, setFilter] = useState("");
 
@@ -73,7 +76,7 @@ function FridgeMain() {
         setActivityLogsToggle(true);
     }
 
-    const addActivityLog = (action, itemName, details) => {
+    /*const addActivityLog = (action, itemName, details) => {
         const newLog = {
             timestamp: new Date().toISOString(),
             action: action,
@@ -95,42 +98,7 @@ function FridgeMain() {
             .catch((err) => {
                 console.log(err)
             });
-    };
-
-    const handleAddItem = () => {
-        if (newItem.name.trim() === "") return;
-        setFridgeItems([
-            ...fridgeItems,
-            { ...newItem, id: fridgeItems.length + 1 }
-        ]);
-        addActivityLog(
-            "ADDED",
-            newItem.name,
-            `Added ${newItem.quantity} ${newItem.name} (${newItem.category}) with expiry date ${newItem.expirationDate}`
-        );
-        setNewItem({
-            name: "",
-            description: "",
-            quantity: 1,
-            category: "Other",
-            expirationDate: new Date().toISOString().split('T')[0],
-            buyingDate: new Date().toISOString().split('T')[0]
-        });
-        AddItemToDB();
-    };
-
-    const AddItemToDB = () => {
-        const requestOptions = {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newItem)
-        };
-        fetch('http://localhost:8080/api/items', requestOptions)
-            .then(response => response.json())
-            .catch((err) => {
-                console.log(err)
-            })
-    }
+    };*/
 
     const handleRemoveItem = (id) => {
         const itemToRemove = fridgeItems.find(item => item.id === id);
@@ -183,11 +151,6 @@ function FridgeMain() {
         }
     }
 
-    const formatTimestamp = (timestamp) => {
-        const date = new Date(timestamp);
-        return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
-    };
-
     // Calculate days until expiry
     const getDaysUntilExpiry = (expiryDate) => {
         const today = new Date();
@@ -196,14 +159,6 @@ function FridgeMain() {
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         return diffDays;
     };
-
-    // Get text color based on expiry date
-    /*const getExpiryColor = (expiryDate) => {
-        const days = getDaysUntilExpiry(expiryDate);
-        if (days < 0) return "text-red-600";
-        if (days < 3) return "text-orange-500";
-        return "text-green-600";
-    };*/
 
     const getExpiryColor = (expiryDate) => {
         const days = getDaysUntilExpiry(expiryDate);
@@ -218,104 +173,10 @@ function FridgeMain() {
         item.category.toLowerCase().includes(filter.toLowerCase())
     );
 
-    const filteredLogs = activityLogs.filter(log =>
-        log.itemName.toLowerCase().includes(filter.toLowerCase()) ||
-        log.action.toLowerCase().includes(filter.toLowerCase())
-    );
-
     return (
         <div className="mainFridge">
 
-            <div className="navRow">
-                <button
-                    className="navButton"
-                    onClick={handleViewToggle}
-                > All items
-                </button>
-                <button
-                    className="navButton"
-                    onClick={handleAddToggle}
-                > Add item
-                </button>
-                <button
-                    className="navButton"
-                    onClick={handleActivityLogsToggle}
-                > Activity Logs
-                </button>
-            </div>
-
             {/* Add new item form */}
-            {addItemsToggle ? <div className="addItem">
-                <h2 className="addItemHead">Add New Item</h2>
-                <div className="addItemElements">
-                    <label>Item Name</label>
-                    <input
-                        type="text"
-                        placeholder="Item name"
-                        className="addItemInput20"
-                        value={newItem.name}
-                        name="itemName"
-                        onChange={(e) => setNewItem({...newItem, name: e.target.value})}
-                    />
-                    <label>Description</label>
-                    <input
-                        type="text"
-                        placeholder="Item description"
-                        className="addItemBaseInput"
-                        value={newItem.description}
-                        onChange={(e) => setNewItem({...newItem, description: e.target.value})}
-                    />
-                    <label>Quantity</label>
-                    <input
-                        type="number"
-                        min="1"
-                        className="addItemCalendarInput"
-                        value={newItem.quantity}
-                        onChange={(e) => setNewItem({...newItem, quantity: parseInt(e.target.value)})}
-                    />
-                    <label>Category</label>
-                    <select
-                        className="addItemInput20"
-                        value={newItem.category}
-                        onChange={(e) => setNewItem({...newItem, category: e.target.value})}
-                    >
-                        <option value="Dairy">Dairy</option>
-                        <option value="Meat">Meat</option>
-                        <option value="Vegetables">Vegetables</option>
-                        <option value="Fruits">Fruits</option>
-                        <option value="Beverages">Beverages</option>
-                        <option value="Leftovers">Leftovers</option>
-                        <option value="Other">Other</option>
-                    </select>
-                    <label>Price</label>
-                    <input
-                        type="number"
-                        className="addItemCalendarInput"
-                        value={newItem.price}
-                        onChange={(e) => setNewItem({...newItem, price: parseFloat(e.target.value)})}
-                    />
-                    <label>Expiration Date</label>
-                    <input
-                        type="date"
-                        className="addItemCalendarInput"
-                        value={newItem.expirationDate}
-                        onChange={(e) => setNewItem({...newItem, expirationDate: e.target.value})}
-                    />
-                    <label>Buying Date</label>
-                    <input
-                        type="date"
-                        className="addItemCalendarInput"
-                        value={newItem.buyingDate}
-                        onChange={(e) => setNewItem({...newItem, buyingDate: e.target.value})}
-                    />
-                    <button
-                        className="addItemButton"
-                        onClick={handleAddItem}
-                    >
-                        Add
-                    </button>
-                </div>
-            </div> : null }
 
             { viewItemsToggle ?
                 <div className="viewAllItems">
@@ -388,53 +249,7 @@ function FridgeMain() {
                     </div>
                 </div> : null}
             {/* Activity Logs */}
-            {activityLogsToggle ? (
-                <div className="viewAllItems">
-                    <div className="mb-4">
-                        <input
-                            type="text"
-                            placeholder="Search logs by item name or action..."
-                            className="searchBar"
-                            value={filter}
-                            onChange={(e) => setFilter(e.target.value)}
-                        />
-                    </div>
-                    <div className="items">
-                        <h2 className="addItemHead">Activity Logs</h2>
-                        {filteredLogs.length === 0 ? (
-                            <p className="noItems">No activity logs found.</p>
-                        ) : (
-                            <table className="itemsTable">
-                                <thead className="itemsTableHeadBase">
-                                <tr>
-                                    <th className="itemsTableHead">Time</th>
-                                    <th className="itemsTableHead">Action</th>
-                                    <th className="itemsTableHead">Item</th>
-                                    <th className="itemsTableHead">Details</th>
-                                </tr>
-                                </thead>
-                                <tbody className="itemsTableBody">
-                                {filteredLogs.map((log, index) => (
-                                    <tr key={index}>
-                                        <td className="itemsTableData">{formatTimestamp(log.timestamp)}</td>
-                                        <td className="itemsTableData">
-                                            <span className={`itemsCategory ${
-                                                log.action === "ADDED" ? "bg-green-100 text-green-800" :
-                                                    log.action === "REMOVED" ? "bg-red-100 text-red-800" :
-                                                        "bg-yellow-100 text-yellow-800"
-                                            }`}>
-                                                {log.action}
-                                            </span>
-                                        </td>
-                                        <td className="itemsTableData">{log.itemName}</td>
-                                        <td className="itemsTableData">{log.details}</td>
-                                    </tr>
-                                ))}
-                                </tbody>
-                            </table>
-                        )}
-                    </div>
-                </div>
+            {activityLogsToggle ? (null
             ) : null}
             {/* Search filter */}
 
