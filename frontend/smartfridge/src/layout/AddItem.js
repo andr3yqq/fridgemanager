@@ -1,4 +1,3 @@
-import fridgeMain from "./FridgeMain";
 import React, {useState} from "react";
 import {addActivityLog} from "./ActivityLogs";
 import defaultHeaders from "./defaultHeaders";
@@ -39,7 +38,7 @@ function AddItem() {
     const AddItemToDB = () => {
         const requestOptions = {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: defaultHeaders(),
             body: JSON.stringify(newItem)
         };
         fetch('http://localhost:8080/api/items', requestOptions)

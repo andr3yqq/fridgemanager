@@ -33,7 +33,8 @@ function FridgeMain() {
         }
         setFridgeItems(fridgeItems.filter(item => item.id !== id));
         const requestOptions = {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: defaultHeaders()
         };
         fetch(`http://localhost:8080/api/items/${id}`, requestOptions)
             .then(response => response.json())
@@ -60,7 +61,7 @@ function FridgeMain() {
             ));
             const requestOptions = {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: defaultHeaders(),
                 body: JSON.stringify(itemToUpdate)
             }
             fetch(`http://localhost:8080/api/items/${itemToUpdate.id}`, requestOptions)

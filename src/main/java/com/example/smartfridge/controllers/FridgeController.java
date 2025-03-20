@@ -4,7 +4,6 @@ package com.example.smartfridge.controllers;
 import com.example.smartfridge.dtos.ItemRecordDto;
 import com.example.smartfridge.services.FridgeService;
 import lombok.RequiredArgsConstructor;
-import org.hibernate.cache.spi.support.AbstractReadWriteAccess;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,9 +19,13 @@ public class FridgeController {
     private final FridgeService fridgeService;
 
     @GetMapping("/items")
-    public ResponseEntity<List<ItemRecordDto>> allItems() {
-        return ResponseEntity.ok(fridgeService.allItems());
+    public ResponseEntity<List<ItemRecordDto>> allItemsByUser() {
+        return ResponseEntity.ok(fridgeService.allItemsByFridge());
     }
+
+    /*public ResponseEntity<List<ItemRecordDto>> allItems() {
+        return ResponseEntity.ok(fridgeService.allItems());
+    }*/
 
     @GetMapping("/items/{id}")
     public ResponseEntity<ItemRecordDto> getItem(@PathVariable long id) {

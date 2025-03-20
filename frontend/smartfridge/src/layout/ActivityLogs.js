@@ -1,12 +1,5 @@
 import React, {useEffect, useState} from "react";
-
-const token = localStorage.getItem("token");
-
-const defaultHeaders = {
-    'Content-Type': 'application/json',
-    ...(token && { 'Authorization': `Bearer ${token}` })
-    //'Authorization': 'Bearer ' + token,
-};
+import defaultHeaders from "./defaultHeaders";
 
 export function ActivityLogs() {
 
@@ -14,7 +7,7 @@ export function ActivityLogs() {
     const [filter, setFilter] = useState("");
 
     useEffect(() => {
-        fetch('http://localhost:8080/api/logs', {headers: defaultHeaders})
+        fetch('http://localhost:8080/api/logs', {headers: defaultHeaders()})
             .then((result) => {
                 return result.json();
             })
@@ -100,7 +93,7 @@ export function addActivityLog(action, itemName, details) {
     // Send to backend
     const requestOptions = {
         method: 'POST',
-        headers: defaultHeaders,
+        headers: defaultHeaders(),
         body: JSON.stringify(newLog)
     };
     fetch('http://localhost:8080/api/logs', requestOptions)
@@ -108,4 +101,4 @@ export function addActivityLog(action, itemName, details) {
         .catch((err) => {
             console.log(err)
         });
-};
+}
