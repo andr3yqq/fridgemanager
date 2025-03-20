@@ -1,25 +1,12 @@
-import Header from "./Header";
-import Footer from "./Footer";
 import React, {useEffect, useState} from "react";
 import './FridgeMain.css';
-import addItem from "./AddItem";
 import {addActivityLog} from "./ActivityLogs";
 import defaultHeaders from "./defaultHeaders";
 
 function FridgeMain() {
-    const [fridgeItems, setFridgeItems] = useState([
-        /*{ id: 1, name: "Milk", quantity: 1, category: "Dairy", expiryDate: "2025-03-10" },
-        { id: 2, name: "Eggs", quantity: 12, category: "Dairy", expiryDate: "2025-03-15" },
-        { id: 3, name: "Chicken", quantity: 2, category: "Meat", expiryDate: "2025-03-05" },
-        { id: 4, name: "Spinach", quantity: 1, category: "Vegetables", expiryDate: "2025-03-07" },
-        { id: 5, name: "Yogurt", quantity: 4, category: "Dairy", expiryDate: "2025-03-12" },
-        { id: 6, name: "Apples", quantity: 6, category: "Fruits", expiryDate: "2025-03-20" }*/
-    ]);
-    const [activityLogs, setActivityLogs] = useState([]);
-
-
+    const [fridgeItems, setFridgeItems] = useState([]);
     useEffect(() => {
-        fetch('http://localhost:8080/api/items', {headers: defaultHeaders})
+        fetch('http://localhost:8080/api/items', {headers: defaultHeaders()})
             .then((result) => {
                 return result.json();
             })
@@ -29,76 +16,9 @@ function FridgeMain() {
             .catch((err) => {
                 console.log(err)
             })
-       /* fetch('http://localhost:8080/api/logs', {headers: defaultHeaders})
-            .then((result) => {
-                return result.json();
-            })
-            .then((data) => {
-                setActivityLogs(data);
-            })
-            .catch((err) => {
-                console.log(err)
-            });*/
     }, []);
 
-    /*const [newItem, setNewItem] = useState({
-        name: "",
-        description: "",
-        quantity: 1,
-        category: "Other",
-        expirationDate: new Date().toISOString().split('T')[0],
-        buyingDate: new Date().toISOString().split('T')[0]
-    });*/
-
     const [filter, setFilter] = useState("");
-
-    const [viewItemsToggle, setViewItemsToggle] = useState(true);
-
-    const [addItemsToggle, setAddItemsToggle] = useState(false);
-
-    const [activityLogsToggle, setActivityLogsToggle] = useState(false);
-
-    const handleViewToggle = () => {
-        setViewItemsToggle(true);
-        setAddItemsToggle(false);
-        setActivityLogsToggle(false);
-    }
-
-    const handleAddToggle = () => {
-        setViewItemsToggle(false);
-        setAddItemsToggle(true);
-        setActivityLogsToggle(false);
-    }
-
-    const handleActivityLogsToggle = () => {
-        setViewItemsToggle(false);
-        setAddItemsToggle(false);
-        setActivityLogsToggle(true);
-    }
-
-    /*const addActivityLog = (action, itemName, details) => {
-        const newLog = {
-            timestamp: new Date().toISOString(),
-            action: action,
-            itemName: itemName,
-            details: details
-        };
-
-        // Add to state for immediate display
-        setActivityLogs([newLog, ...activityLogs]);
-
-        // Send to backend
-        const requestOptions = {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newLog)
-        };
-        fetch('http://localhost:8080/api/logs', requestOptions)
-            .then(response => response.json())
-            .catch((err) => {
-                console.log(err)
-            });
-    };*/
 
     const handleRemoveItem = (id) => {
         const itemToRemove = fridgeItems.find(item => item.id === id);
@@ -175,10 +95,6 @@ function FridgeMain() {
 
     return (
         <div className="mainFridge">
-
-            {/* Add new item form */}
-
-            { viewItemsToggle ?
                 <div className="viewAllItems">
                     <div className="mb-4">
                     <input
@@ -247,15 +163,7 @@ function FridgeMain() {
                         </table>
                     )}
                     </div>
-                </div> : null}
-            {/* Activity Logs */}
-            {activityLogsToggle ? (null
-            ) : null}
-            {/* Search filter */}
-
-
-            {/* Items list */}
-
+                </div>
         </div>
     );
 }

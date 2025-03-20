@@ -1,13 +1,12 @@
 import React, { useState } from "react";
 import './Auth.css';
 
-function LoginPage() {
+function LoginPage(props) {
     const [username, setUsername] = useState("");
-    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loginResult, setLoginResult] = useState({})
 
-    const handleSubmit = async (loginResult) => {
+    const handleSubmit = async () => {
         const userData = {
             username: username,
             password: password
@@ -27,6 +26,8 @@ function LoginPage() {
             console.log(data);
             localStorage.setItem('token', data.token);
             setLoginResult(data);
+            props.setIsAuthenticated(true);
+            props.handleViewToggle();
             //console.log(response.status());
         }
 
