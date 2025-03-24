@@ -7,6 +7,7 @@ import LoginPage from "./layout/LoginPage";
 import SignupPage from "./layout/SignupPage";
 import {ActivityLogs} from "./layout/ActivityLogs";
 import AddItem from "./layout/AddItem";
+import AccountSettings from "./layout/AccountSettings";
 
 
 
@@ -27,6 +28,8 @@ function App() {
 
     const [activityLogsToggle, setActivityLogsToggle] = useState(false);
 
+    const [settingsToggle, setSettingsToggle] = useState(false);
+
     //setIsAuthenticated(token);
 
     const handleViewToggle = () => {
@@ -35,6 +38,7 @@ function App() {
         setActivityLogsToggle(false);
         setLoginToggle(false);
         setRegisterToggle(false);
+        setSettingsToggle(false);
     }
 
     const handleAddToggle = () => {
@@ -43,6 +47,7 @@ function App() {
         setActivityLogsToggle(false);
         setLoginToggle(false);
         setRegisterToggle(false);
+        setSettingsToggle(false);
     }
 
     const handleActivityLogsToggle = () => {
@@ -51,6 +56,7 @@ function App() {
         setActivityLogsToggle(true);
         setLoginToggle(false);
         setRegisterToggle(false);
+        setSettingsToggle(false);
     }
 
     const handleRegisterToggle = () => {
@@ -59,6 +65,7 @@ function App() {
         setActivityLogsToggle(false);
         setLoginToggle(false);
         setRegisterToggle(true);
+        setSettingsToggle(false);
     }
 
     const handleLoginToggle = () => {
@@ -67,6 +74,16 @@ function App() {
         setActivityLogsToggle(false);
         setLoginToggle(true);
         setRegisterToggle(false);
+        setSettingsToggle(false);
+    }
+
+    const handleSettingsToggle = () => {
+        setViewItemsToggle(false);
+        setAddItemsToggle(false);
+        setActivityLogsToggle(false);
+        setLoginToggle(false);
+        setRegisterToggle(false);
+        setSettingsToggle(true);
     }
 
     const handleLogout = () => {
@@ -98,6 +115,11 @@ function App() {
             </button>
             <button
                 className="navButton"
+                onClick={handleSettingsToggle}
+            > Account Settings
+            </button>
+            <button
+                className="navButton"
                 onClick={handleLogout}
                 >Logout
             </button>
@@ -126,6 +148,7 @@ function App() {
                 setIsAuthenticated={setIsAuthenticated}
                 handleViewToggle={handleViewToggle}/>
             : null}
+        {settingsToggle ? <AccountSettings /> : null}
 
       <Footer />
     </div>

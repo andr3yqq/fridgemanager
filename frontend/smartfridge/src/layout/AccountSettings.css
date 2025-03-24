@@ -1,0 +1,4 @@
+.account-settings-content {
+    display: flex;
+    flex-direction: column;
+}

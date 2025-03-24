@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -20,7 +20,7 @@ public class UserLogRecord {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
     @Column
-    private LocalDate timestamp;
+    private LocalDateTime timestamp;
     @Column
     private String action;
     @Column

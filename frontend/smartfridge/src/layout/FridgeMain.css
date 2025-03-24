@@ -1,5 +1,5 @@
 .mainFridge {
-    min-height: 86vh;
+    min-height: 79vh;
     display: flex;
     flex-direction: column;
 }
@@ -99,6 +99,7 @@
 }
 
 .addItem {
+    height: 74vh;
      padding: 1rem;
      margin-bottom: 1.5rem;
      border-radius: 0.5rem;

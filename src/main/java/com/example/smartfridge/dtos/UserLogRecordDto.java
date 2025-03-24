@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -14,7 +14,7 @@ import java.time.LocalDate;
 public class UserLogRecordDto {
     private Long id;
 
-    private LocalDate timestamp;
+    private LocalDateTime timestamp;
 
     private String action;
 
