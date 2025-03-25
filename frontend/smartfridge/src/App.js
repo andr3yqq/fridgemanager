@@ -2,35 +2,52 @@ import './layout/App.css';
 import Header from "./layout/Header";
 import FridgeMain from "./layout/FridgeMain";
 import Footer from "./layout/Footer";
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import LoginPage from "./layout/LoginPage";
 import SignupPage from "./layout/SignupPage";
 import {ActivityLogs} from "./layout/ActivityLogs";
 import AddItem from "./layout/AddItem";
 import AccountSettings from "./layout/AccountSettings";
-
-
-
-
+import defaultHeaders from "./layout/defaultHeaders";
 
 function App() {
 
-    const token = localStorage.getItem("token");
+    //const token = localStorage.getItem("token");
 
-    const [isAuthenticated, setIsAuthenticated] = useState(!!token);
+    useEffect( () => {
+        async function auth() {
+            try {
 
-    const [loginToggle, setLoginToggle] = useState(!token);
+                const response = await fetch('http://localhost:8080/auth/login', {headers: defaultHeaders()})
+                if (!response.ok) {
+                    setIsAuthenticated(false);
+                    handleLoginToggle();
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                const data = await response.json();
+                setUserData(data);
+                setIsAuthenticated(true);
+                handleViewToggle();
+            } catch (error) {
+                console.error("Login failed:", error.message);
+            }
+        }
+        auth();
+    }, []);
+
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [userData, setUserData] = useState({});
+
+    const [loginToggle, setLoginToggle] = useState(true);
     const [registerToggle, setRegisterToggle] = useState(false);
 
-    const [viewItemsToggle, setViewItemsToggle] = useState(!!token);
+    const [viewItemsToggle, setViewItemsToggle] = useState(false);
 
     const [addItemsToggle, setAddItemsToggle] = useState(false);
 
     const [activityLogsToggle, setActivityLogsToggle] = useState(false);
 
     const [settingsToggle, setSettingsToggle] = useState(false);
-
-    //setIsAuthenticated(token);
 
     const handleViewToggle = () => {
         setViewItemsToggle(true);
@@ -148,7 +165,9 @@ function App() {
                 setIsAuthenticated={setIsAuthenticated}
                 handleViewToggle={handleViewToggle}/>
             : null}
-        {settingsToggle ? <AccountSettings /> : null}
+        {settingsToggle ? <AccountSettings
+            userData={userData}
+        /> : null}
 
       <Footer />
     </div>

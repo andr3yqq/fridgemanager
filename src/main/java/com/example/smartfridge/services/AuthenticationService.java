@@ -6,6 +6,8 @@ import com.example.smartfridge.entities.User;
 import com.example.smartfridge.mappers.UserMapper;
 import com.example.smartfridge.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -50,8 +52,24 @@ public class AuthenticationService implements UserDetailsService {
         return user;
     }
 
+    public User changePassword(String oldPassword, String newPassword, PasswordEncoder passwordEncoder) {
+        User user = tokenCheck();
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new UsernameNotFoundException("Invalid credentials");
+        }
+        user.setPassword(passwordEncoder.encode(newPassword));
+        return userRepository.save(user);
+    }
+
+    public User tokenCheck() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+
+        return userRepository.findUserByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
     public User registerUser(UserDto userDto, PasswordEncoder passwordEncoder) {
-        // Check if username or email already exists
         if (userRepository.findUserByUsername(userDto.getUsername()).isPresent()) {
             throw new IllegalArgumentException("Username is already taken.");
         }
@@ -60,12 +78,6 @@ public class AuthenticationService implements UserDetailsService {
         }
 
         Fridge fridge = new Fridge(0L, "Basic", null);
-        /*if (userDto.getFridgeId() != null) {
-            fridge = fridgeRepository.findById(userDto.getFridgeId())
-                    .orElseThrow(() -> new IllegalArgumentException("Fridge not found."));
-        }*/
-
-        // Create and save user
         User newUser = new User(
                 null,
                 userDto.getUsername(),

@@ -1,6 +1,7 @@
 package com.example.smartfridge.controllers;
 
 
+import com.example.smartfridge.dtos.FridgeDto;
 import com.example.smartfridge.dtos.ItemRecordDto;
 import com.example.smartfridge.services.FridgeService;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,11 @@ public class FridgeController {
     @GetMapping("/items")
     public ResponseEntity<List<ItemRecordDto>> allItemsByUser() {
         return ResponseEntity.ok(fridgeService.allItemsByFridge());
+    }
+
+    @GetMapping("/fridge")
+    public ResponseEntity<FridgeDto> allFridgeInfo() {
+        return ResponseEntity.ok(fridgeService.checkCurrentUserFridge());
     }
 
     /*public ResponseEntity<List<ItemRecordDto>> allItems() {

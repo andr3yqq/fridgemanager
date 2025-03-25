@@ -1,6 +1,5 @@
 package com.example.smartfridge.controllers;
 
-
 import com.example.smartfridge.dtos.UserDto;
 import com.example.smartfridge.dtos.UserResponseDto;
 import com.example.smartfridge.entities.User;
@@ -10,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -50,9 +51,34 @@ public class AuthenticationController {
                 user.getFridgeId() != null ? user.getFridgeId().getId() : null,
                 jwtProvider.generateToken(user.getUsername())
         );
-
-    
         return ResponseEntity.ok(responseDto);
     }
 
+    @GetMapping("/login")
+    public ResponseEntity<UserResponseDto> token(@RequestHeader("Authorization") String token) {
+        User user = authService.tokenCheck();
+        UserResponseDto responseDto = new UserResponseDto(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getRole(),
+                user.getFridgeId() != null ? user.getFridgeId().getId() : null,
+                token.substring(7)
+        );
+        return ResponseEntity.ok(responseDto);
+    }
+
+    @PostMapping("/update-password")
+    public ResponseEntity<UserResponseDto> changePassword(@RequestBody Map<String, String> requestBody) {
+        User user = authService.changePassword(requestBody.get("oldPassword"),requestBody.get("newPassword"),passwordEncoder);
+        UserResponseDto responseDto = new UserResponseDto(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getRole(),
+                user.getFridgeId() != null ? user.getFridgeId().getId() : null,
+                jwtProvider.generateToken(user.getUsername())
+        );
+        return ResponseEntity.ok(responseDto);
+    }
 }
