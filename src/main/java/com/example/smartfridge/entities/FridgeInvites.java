@@ -19,12 +19,12 @@ public class FridgeInvites {
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
-    @Column
-    private String status;
     @ManyToOne
     @JoinColumn(name = "invited_user_id")
     private User invitedUser;
     @ManyToOne
     @JoinColumn(name = "fridge_id")
     private Fridge fridgeId;
+    @Column
+    private String status;
 }

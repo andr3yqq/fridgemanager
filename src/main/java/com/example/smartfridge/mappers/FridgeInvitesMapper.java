@@ -4,7 +4,6 @@ import com.example.smartfridge.dtos.FridgeInvitesDto;
 import com.example.smartfridge.entities.Fridge;
 import com.example.smartfridge.entities.FridgeInvites;
 import com.example.smartfridge.entities.User;
-import org.mapstruct.InheritInverseConfiguration;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
@@ -17,7 +16,6 @@ public interface FridgeInvitesMapper {
     @Mapping(source = "fridgeId.id", target = "fridgeId")
     FridgeInvitesDto toDto(FridgeInvites fridgeInvites);
 
-    @InheritInverseConfiguration
     @Mapping(source = "userId", target = "user", qualifiedByName = "userIdToUser")
     @Mapping(source = "invitedId", target = "invitedUser", qualifiedByName = "userIdToUser")
     @Mapping(source = "fridgeId", target = "fridgeId", qualifiedByName = "fridgeIdToFridge")
