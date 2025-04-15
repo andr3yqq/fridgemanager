@@ -1,22 +1,23 @@
-import React, {useEffect, useState} from "react";
+import React, {useState} from "react";
 import './FridgeMain.css';
 import {addActivityLog} from "./ActivityLogs";
 import defaultHeaders from "./defaultHeaders";
 
-function FridgeMain() {
+function FridgeMain(props) {
     const [fridgeItems, setFridgeItems] = useState([]);
-    useEffect(() => {
+    if (props.fridgeId !== 0) {
         fetch('http://localhost:8080/api/items', {headers: defaultHeaders()})
             .then((result) => {
                 return result.json();
             })
             .then((data) => {
                 setFridgeItems(data);
-                })
+            })
             .catch((err) => {
                 console.log(err)
             })
-    }, []);
+
+    }
 
     const [filter, setFilter] = useState("");
 
@@ -48,9 +49,7 @@ function FridgeMain() {
         itemToUpdate.quantity--;
         if (itemToUpdate.quantity <= 0) {
             handleRemoveItem(itemToUpdate.id);
-        }
-        else
-        {
+        } else {
             addActivityLog(
                 "CONSUMED",
                 itemToUpdate.name,
@@ -77,8 +76,7 @@ function FridgeMain() {
         const today = new Date();
         const expiry = new Date(expiryDate);
         const diffTime = expiry - today;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays;
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     };
 
     const getExpiryColor = (expiryDate) => {
@@ -96,75 +94,84 @@ function FridgeMain() {
 
     return (
         <div className="mainFridge">
-                <div className="viewAllItems">
-                    <div className="mb-4">
-                    <input
-                        type="text"
-                        placeholder="Search items or categories..."
-                        className="searchBar"
-                        value={filter}
-                        onChange={(e) => setFilter(e.target.value)}
-                    />
-                    </div>
-                    <div className="items">
-                    {filteredItems.length === 0 ? (
-                        <p className="noItems">No items in your fridge.</p>
-                    ) : (
-                        <table className="itemsTable">
-                            <thead className="itemsTableHeadBase">
-                            <tr>
-                                <th className="itemsTableHead">Item</th>
-                                <th className="itemsTableHead">Quantity</th>
-                                <th className="itemsTableHead">Category</th>
-                                <th className="itemsTableHead">Price (1p)</th>
-                                <th className="itemsTableHead">Total price</th>
-                                <th className="itemsTableHead">Expires</th>
-                                <th className="itemsTableHead">Buying date</th>
-                                <th className="itemsTableHead">Action</th>
-                            </tr>
-                            </thead>
-                            <tbody className="itemsTableBody">
-                            {filteredItems.map(item => (
-                                <tr key={item.id}>
-                                    <td className="itemsTableData">{item.name}</td>
-                                    <td className="itemsTableData">{item.quantity}
-                                        <button type="button" className="arrow-button" onClick={() => handleUpdateItem(item)}>
-                                            <svg className="icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
-                                                 fill="none" viewBox="0 0 14 10">
-                                                <path stroke="currentColor" strokeLinecap="round"
-                                                      strokeLinejoin="round" strokeWidth="2"
-                                                      d="M7 9V1m0 8l-4-4m4 4l4-4"/>
-                                            </svg>
-                                            <span className="sr-only">Icon description</span>
-                                        </button>
-                                    </td>
-                                    <td className="itemsTableData">
-                                        <span className="itemsCategory">{item.category}</span>
-                                    </td>
-                                    <td className="itemsTableData">{item.price}</td>
-                                    <td className="itemsTableData">{item.price * item.quantity}</td>
-                                    <td className={`itemsTableData`} style={{color: getExpiryColor(item.expirationDate)}}>
-                                        {item.expirationDate}
-                                        <span className="text-sm ml-2">
+            <div className="viewAllItems">
+                {props.fridgeId === 0 ? (
+                    <p className="noItems">You are not connected to any fridge.</p>
+                ) : (<>
+                        <div className="mb-4">
+                            <input
+                                type="text"
+                                placeholder="Search items or categories..."
+                                className="searchBar"
+                                value={filter}
+                                onChange={(e) => setFilter(e.target.value)}
+                            />
+                        </div>
+                        <div className="items">
+                            {filteredItems.length === 0 ? (
+                                <p className="noItems">No items in your fridge.</p>
+                            ) : (
+                                <table className="itemsTable">
+                                    <thead className="itemsTableHeadBase">
+                                    <tr>
+                                        <th className="itemsTableHead">Item</th>
+                                        <th className="itemsTableHead">Quantity</th>
+                                        <th className="itemsTableHead">Category</th>
+                                        <th className="itemsTableHead">Price (1p)</th>
+                                        <th className="itemsTableHead">Total price</th>
+                                        <th className="itemsTableHead">Expires</th>
+                                        <th className="itemsTableHead">Buying date</th>
+                                        <th className="itemsTableHead">Action</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody className="itemsTableBody">
+                                    {filteredItems.map(item => (
+                                        <tr key={item.id}>
+                                            <td className="itemsTableData">{item.name}</td>
+                                            <td className="itemsTableData">{item.quantity}
+                                                <button type="button" className="arrow-button"
+                                                        onClick={() => handleUpdateItem(item)}>
+                                                    <svg className="icon" aria-hidden="true"
+                                                         xmlns="http://www.w3.org/2000/svg"
+                                                         fill="none" viewBox="0 0 14 10">
+                                                        <path stroke="currentColor" strokeLinecap="round"
+                                                              strokeLinejoin="round" strokeWidth="2"
+                                                              d="M7 9V1m0 8l-4-4m4 4l4-4"/>
+                                                    </svg>
+                                                    <span className="sr-only">Icon description</span>
+                                                </button>
+                                            </td>
+                                            <td className="itemsTableData">
+                                                <span className="itemsCategory">{item.category}</span>
+                                            </td>
+                                            <td className="itemsTableData">{item.price}</td>
+                                            <td className="itemsTableData">{item.price * item.quantity}</td>
+                                            <td className={`itemsTableData`}
+                                                style={{color: getExpiryColor(item.expirationDate)}}>
+                                                {item.expirationDate}
+                                                <span className="text-sm ml-2">
                       ({getDaysUntilExpiry(item.expirationDate)} days)
-                    </span>
-                                    </td>
-                                    <td className="itemsTableData">{item.buyingDate}</td>
-                                    <td className="p-4">
-                                        <button
-                                                className="itemsRemoveButton"
-                                            onClick={() => handleRemoveItem(item.id)}
-                                        >
-                                            Remove
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                            </tbody>
-                        </table>
-                    )}
-                    </div>
-                </div>
+                                                </span>
+                                            </td>
+                                            <td className="itemsTableData">{item.buyingDate}</td>
+                                            <td className="p-4">
+                                                <button
+                                                    className="itemsRemoveButton"
+                                                    onClick={() => handleRemoveItem(item.id)}
+                                                >
+                                                    Remove
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                    </>
+                )}
+
+            </div>
         </div>
     );
 }

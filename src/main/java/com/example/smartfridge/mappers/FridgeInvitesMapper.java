@@ -8,6 +8,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
+import java.util.List;
+
 @Mapper(componentModel = "spring")
 public interface FridgeInvitesMapper {
 
@@ -15,6 +17,8 @@ public interface FridgeInvitesMapper {
     @Mapping(source = "invitedUser.id", target = "invitedId")
     @Mapping(source = "fridgeId.id", target = "fridgeId")
     FridgeInvitesDto toDto(FridgeInvites fridgeInvites);
+
+    List<FridgeInvitesDto> toDtoList(List<FridgeInvites> fridgeInvites);
 
     @Mapping(source = "userId", target = "user", qualifiedByName = "userIdToUser")
     @Mapping(source = "invitedId", target = "invitedUser", qualifiedByName = "userIdToUser")

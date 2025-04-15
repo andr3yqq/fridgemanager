@@ -22,6 +22,7 @@ import com.example.smartfridge.entities.User;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -130,6 +131,7 @@ public class FridgeService {
     }
 
     public FridgeInvitesDto inviteUser(String username) {
+        System.out.println(username);
         User currentUser = getCurrentUser();
         User invitedUser = userRepository.findUserByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -146,6 +148,12 @@ public class FridgeService {
         return null;
     }
 
+    public List<FridgeInvitesDto> getInvitesForUser() {
+        User currentUser = getCurrentUser();
+        return fridgeInvitesMapper.toDtoList(fridgeInvitesRepository.findAllByInvitedUser(currentUser)
+                .stream().filter(e -> e.getStatus().equals("invited")).collect(Collectors.toList()));
+    }
+
     public UserDto leaveFridge() {
         User user = getCurrentUser();
         if (user.getFridgeId().getId() != 0) {
@@ -158,6 +166,37 @@ public class FridgeService {
                 return userMapper.toUserDto(user);
             }
             return null;
+        }
+        return null;
+    }
+
+    public UserDto joinFridge(Long inviteId) {
+        User user = getCurrentUser();
+        FridgeInvites invite = fridgeInvitesRepository.findById(inviteId).orElse(null);
+        if (invite != null && user.getFridgeId().getId() == 0) {
+            Fridge newFridge = new Fridge();
+            newFridge.setId(invite.getFridgeId().getId());
+            user.setFridgeId(newFridge);
+            invite.setStatus("accepted");
+            fridgeInvitesRepository.save(invite);
+            userRepository.save(user);
+            return userMapper.toUserDto(user);
+        }
+        return null;
+    }
+
+    public String getInviteUsername(Long id) {
+        FridgeInvites invite = fridgeInvitesRepository.findById(id).orElse(null);
+        if (invite != null) {
+            return invite.getInvitedUser().getUsername();
+        }
+        return null;
+    }
+
+    public String getInviteFridgeName(Long id) {
+        FridgeInvites invite = fridgeInvitesRepository.findById(id).orElse(null);
+        if (invite != null) {
+            return invite.getFridgeId().getName();
         }
         return null;
     }

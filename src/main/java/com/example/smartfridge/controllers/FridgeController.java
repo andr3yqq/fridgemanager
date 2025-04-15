@@ -1,16 +1,14 @@
 package com.example.smartfridge.controllers;
 
 
-import com.example.smartfridge.dtos.FridgeDto;
-import com.example.smartfridge.dtos.FridgeInvitesDto;
-import com.example.smartfridge.dtos.ItemRecordDto;
-import com.example.smartfridge.dtos.UserDto;
+import com.example.smartfridge.dtos.*;
 import com.example.smartfridge.services.FridgeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -43,10 +41,28 @@ public class FridgeController {
         return ResponseEntity.ok(deletedFridge);
     }
 
+    @GetMapping("/invites")
+    public ResponseEntity<List<InvitesResponseDto>> getInvitesForUser() {
+        List<FridgeInvitesDto> invites = fridgeService.getInvitesForUser();
+
+        List<InvitesResponseDto> invitesDto = new ArrayList<>();
+        invites.forEach(invite -> {
+            invitesDto.add(new InvitesResponseDto(invite.getId(),fridgeService.getInviteUsername(invite.getId()),fridgeService.getInviteFridgeName(invite.getId())));
+        });
+        return ResponseEntity.ok(invitesDto);
+    }
+
     @PostMapping("/invite")
     public ResponseEntity<FridgeInvitesDto> inviteUser(@RequestBody String username) {
         FridgeInvitesDto invite = fridgeService.inviteUser(username);
+        System.out.println(invite);
         return ResponseEntity.ok(invite);
+    }
+
+    @PostMapping("/fridge/join")
+    public ResponseEntity<UserDto> joinFridge(@RequestBody Long inviteId) {
+        UserDto user = fridgeService.joinFridge(inviteId);
+        return ResponseEntity.ok(user);
     }
 
     @PostMapping("/fridge/leave")

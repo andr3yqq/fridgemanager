@@ -156,7 +156,9 @@ function App() {
         }
         {activityLogsToggle ? <ActivityLogs /> : null}
         {addItemsToggle ? <AddItem/> : null}
-        {viewItemsToggle ? <FridgeMain /> : null}
+        {viewItemsToggle ? <FridgeMain
+            fridgeId={userData.fridgeId}
+        /> : null}
         {loginToggle ? <LoginPage
             setIsAuthenticated={setIsAuthenticated}
             handleViewToggle={handleViewToggle}/>

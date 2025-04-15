@@ -5,12 +5,12 @@ import defaultHeaders from "./defaultHeaders";
 function AccountSettings(props) {
 
     const [userDetails, setUserDetails] = React.useState({
+        username: props.username,
+        email: props.email,
         password: 'aaaaaaaaaaaaaaaaa',
     });
 
-    useEffect(() => {
-        setUserDetails(props.userData);
-        setIsFridgeConnected(!!userDetails.fridgeId);
+    const getFridgeDetails = () => {
         const requestOptions = {
             method: 'GET',
             headers: defaultHeaders()
@@ -20,13 +20,32 @@ function AccountSettings(props) {
                 const data = await response.json();
                 console.log(data);
                 setFridgeDetails(data);
-                if (fridgeDetails.id !== 0)
+                if (data.id !== 0)
                     setIsFridgeConnected(true);
             })
             .catch((err) => {
                 console.log(err)
             })
-    },[]);
+    }
+
+    useEffect(() => {
+        setUserDetails(props.userData);
+        const requestOptions = {
+            method: 'GET',
+            headers: defaultHeaders()
+        };
+        getFridgeDetails();
+        fetch('http://localhost:8080/api/invites', requestOptions)
+            .then(async response => {
+                const data = await response.json();
+                setInvitesList(data);
+            })
+            .catch((err) => {
+                console.log(err);
+            })
+
+    }, []);
+
 
     const [confirmPasswordInput, setConfirmPasswordInput] = React.useState(false);
     const [changePassword, setChangePassword] = React.useState({
@@ -64,6 +83,82 @@ function AccountSettings(props) {
         setFridgeSettingsToggle(!fridgeSettingsToggle);
     }
     const [invitedPerson, setInvitedPerson] = React.useState("");
+    const [inviteToggle, setInviteToggle] = React.useState(false);
+    const handleInviteToggle = () => {
+        setInviteToggle(!inviteToggle);
+    }
+    const [invitesList, setInvitesList] = React.useState([]);
+    const handleInvite = () => {
+        const requestOptions = {
+            method: 'POST',
+            headers: defaultHeaders(),
+            body: invitedPerson
+        };
+        fetch('http://localhost:8080/api/invite', requestOptions)
+            .then(async response => {
+                const data = await response.json();
+                console.log(data);
+            })
+            .catch((err) => {
+                console.log(err)
+            })
+    }
+
+    const handleAcceptInvite = (id) => {
+        const requestOptions = {
+            method: 'POST',
+            headers: defaultHeaders(),
+            body: id
+        };
+        fetch('http://localhost:8080/api/fridge/join', requestOptions)
+            .then(async response => {
+                const data = await response.json();
+                console.log(data);
+                getFridgeDetails();
+            })
+            .catch((err) => {
+                console.log(err);
+            })
+    }
+
+    const [createToggle, setCreateToggle] = React.useState(false);
+    const handleCreateToggle = () => {
+        setCreateToggle(!createToggle);
+    }
+
+    const handleCreateFridge = () => {
+        const requestOptions = {
+            method: 'POST',
+            headers: defaultHeaders(),
+            body: fridgeDetails.name
+        };
+        fetch('http://localhost:8080/api/fridge', requestOptions)
+            .then(async response => {
+                const data = await response.json();
+                console.log(data);
+                setFridgeDetails(data);
+                setIsFridgeConnected(true);
+            })
+            .catch((err) => {
+                console.log(err)
+            })
+    }
+
+    const handleLeaveFridge = () => {
+        const requestOptions = {
+            method: 'POST',
+            headers: defaultHeaders()
+        }
+        fetch('http://localhost:8080/api/fridge/leave', requestOptions)
+            .then(async response => {
+                const data = await response.json();
+                console.log(data);
+                setIsFridgeConnected(false);
+            })
+            .catch((err) => {
+                console.log(err)
+            })
+    }
 
     return (
         <div className="account-settings">
@@ -107,7 +202,8 @@ function AccountSettings(props) {
                             setConfirmPasswordInput(false);
                             handleChangePassword();
                         }}
-                    >Save new password</button>
+                    >Save new password
+                    </button>
                 </div> : <div className="account-settings-content">
                     <label>Password</label>
                     <input
@@ -119,7 +215,8 @@ function AccountSettings(props) {
                         onClick={() => {
                             setConfirmPasswordInput(true);
                         }}
-                    >Change password</button>
+                    >Change password
+                    </button>
                 </div>}
                 {isFridgeConnected ? (
                     <div className="account-settings-content">
@@ -129,11 +226,12 @@ function AccountSettings(props) {
                             disabled={true}
                             value={fridgeDetails.name}
                         />
-                        { (fridgeDetails.ownerId === userDetails.id) ? (
+                        {(fridgeDetails.ownerId === userDetails.id) ? (
                             <div className="account-settings-content">
                                 <button
                                     onClick={handleSettingsToggle}
-                                >Manage fridge</button>
+                                >Manage fridge
+                                </button>
                                 {fridgeSettingsToggle ? (
                                     <div className="account-settings-content">
                                         <label>Invite user</label>
@@ -144,15 +242,18 @@ function AccountSettings(props) {
                                             onChange={(e) => setInvitedPerson(e.target.value)}
                                         />
                                         <button
-                                        >Send invite</button>
+                                            onClick={handleInvite}
+                                        >Send invite
+                                        </button>
                                     </div>
                                 ) : null}
                             </div>
                         ) : (
                             <div className="account-settings-content">
                                 <button
-                                    onClick={() => {}}
-                                >Leave fridge</button>
+                                    onClick={handleLeaveFridge}
+                                >Leave fridge
+                                </button>
                             </div>
                         )
                         }
@@ -162,8 +263,38 @@ function AccountSettings(props) {
                         <label>Fridge</label>
                         <h3>Fridge is not connected</h3>
                         <button
-
-                        >Create new fridge</button>
+                            onClick={handleCreateToggle}
+                        >Create new fridge
+                        </button>
+                        {createToggle ? (<>
+                            <input
+                                type="text"
+                                value={fridgeDetails.name}
+                                onChange={(e) => setFridgeDetails({...fridgeDetails, name: e.target.value})}
+                            />
+                            <button
+                                onClick={handleCreateFridge}
+                            >Submit new fridge
+                            </button>
+                        </>) : null}
+                        <button
+                            onClick={handleInviteToggle}
+                        >Fridge invites
+                        </button>
+                        {inviteToggle ? (<>
+                            <label>Invites list</label>
+                            <ol>
+                                {invitesList.map((item) => (<>
+                                    <li key={item.id}>Fridge name: {item.fridgeName}
+                                        <p>Invited by: {item.username}</p>
+                                    </li>
+                                        <button
+                                            onClick={() => handleAcceptInvite(item.id)}
+                                        >Accept invite</button>
+                                    </>
+                                ))}
+                            </ol>
+                        </>) : null}
                     </div>
                 )}
 
