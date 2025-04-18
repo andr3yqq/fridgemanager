@@ -17,7 +17,7 @@ export function ActivityLogs() {
             .catch((err) => {
                 console.log(err)
             });
-    })
+    },[])
 
     const filteredLogs = activityLogs.filter(log =>
         log.itemName.toLowerCase().includes(filter.toLowerCase()) ||
@@ -87,10 +87,6 @@ export function addActivityLog(action, itemName, details) {
         details: details
     };
 
-    // Add to state for immediate display
-   // setActivityLogs([newLog, ...activityLogs]);
-
-    // Send to backend
     const requestOptions = {
         method: 'POST',
         headers: defaultHeaders(),

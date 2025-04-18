@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import './Auth.css';
+import { useAppContext } from "../context/AppContext";
 
-function LoginPage(props) {
+function LoginPage({ handleViewToggle }) {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState('');
-    const [loginResult, setLoginResult] = useState({})
+
+    const { setIsAuthenticated, setUserData } = useAppContext();
 
     const handleSubmit = async () => {
         const userData = {
@@ -25,9 +27,14 @@ function LoginPage(props) {
             const data = await response.json();
             console.log(data);
             localStorage.setItem('token', data.token);
-            setLoginResult(data);
-            props.setIsAuthenticated(true);
-            props.handleViewToggle();
+            setIsAuthenticated(true);
+            setUserData({
+                id: data.id,
+                username: data.username,
+                email: data.email,
+                role: data.role,
+            });
+            handleViewToggle();
             //console.log(response.status());
         }
 

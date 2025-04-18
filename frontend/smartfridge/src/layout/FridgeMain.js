@@ -1,30 +1,34 @@
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import './FridgeMain.css';
 import {addActivityLog} from "./ActivityLogs";
 import defaultHeaders from "./defaultHeaders";
+import {useAppContext} from "../context/AppContext";
 
-function FridgeMain(props) {
+function FridgeMain() {
     const [fridgeItems, setFridgeItems] = useState([]);
-    if (props.fridgeId !== 0) {
-        fetch('http://localhost:8080/api/items', {headers: defaultHeaders()})
-            .then((result) => {
-                return result.json();
-            })
-            .then((data) => {
-                setFridgeItems(data);
-            })
-            .catch((err) => {
-                console.log(err)
-            })
+    const {userData} = useAppContext();
+    useEffect(() => {
+        if (userData.fridgeId !== 0) {
+            fetch('http://localhost:8080/api/items', {headers: defaultHeaders()})
+                .then((result) => {
+                    return result.json();
+                })
+                .then((data) => {
+                    setFridgeItems(data);
+                })
+                .catch((err) => {
+                    console.log(err)
+                })
 
-    }
+        }
+    },[userData.fridgeId]);
+
 
     const [filter, setFilter] = useState("");
 
     const handleRemoveItem = (id) => {
         const itemToRemove = fridgeItems.find(item => item.id === id);
 
-        // Log the activity
         if (itemToRemove) {
             addActivityLog(
                 "REMOVED",
@@ -95,7 +99,7 @@ function FridgeMain(props) {
     return (
         <div className="mainFridge">
             <div className="viewAllItems">
-                {props.fridgeId === 0 ? (
+                {userData.fridgeId === 0 ? (
                     <p className="noItems">You are not connected to any fridge.</p>
                 ) : (<>
                         <div className="mb-4">

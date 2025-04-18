@@ -1,13 +1,16 @@
 import React, {useEffect} from "react";
 import './AccountSettings.css';
 import defaultHeaders from "./defaultHeaders";
+import { useAppContext } from "../context/AppContext";
 
-function AccountSettings(props) {
+function AccountSettings() {
 
+    const { userData } = useAppContext();
     const [userDetails, setUserDetails] = React.useState({
-        username: props.username,
-        email: props.email,
-        password: 'aaaaaaaaaaaaaaaaa',
+        username: userData.username,
+        email: userData.email,
+        password: '***************',
+        id: userData.id
     });
 
     const getFridgeDetails = () => {
@@ -29,7 +32,12 @@ function AccountSettings(props) {
     }
 
     useEffect(() => {
-        setUserDetails(props.userData);
+        setUserDetails({
+            username: userData.username,
+            email: userData.email,
+            password: '***************',
+            id: userData.id
+        });
         const requestOptions = {
             method: 'GET',
             headers: defaultHeaders()
@@ -44,7 +52,7 @@ function AccountSettings(props) {
                 console.log(err);
             })
 
-    }, []);
+    }, [userData]);
 
 
     const [confirmPasswordInput, setConfirmPasswordInput] = React.useState(false);
