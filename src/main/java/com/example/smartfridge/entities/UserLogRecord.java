@@ -30,4 +30,7 @@ public class UserLogRecord {
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
+    @ManyToOne
+    @JoinColumn(name = "fridge_id")
+    private Fridge fridgeId;
 }

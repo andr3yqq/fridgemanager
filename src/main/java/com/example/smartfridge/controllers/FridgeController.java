@@ -35,7 +35,7 @@ public class FridgeController {
         return ResponseEntity.created(URI.create("/fridge/" + createdFridge.getId())).body(createdFridge);
     }
 
-    @DeleteMapping("/fridge/{id}")
+    @DeleteMapping("/fridge")
     public ResponseEntity<FridgeDto> deleteFridge() {
         FridgeDto deletedFridge = fridgeService.deleteFridge();
         return ResponseEntity.ok(deletedFridge);

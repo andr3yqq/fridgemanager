@@ -2,6 +2,7 @@ import React, {useEffect} from "react";
 import './AccountSettings.css';
 import defaultHeaders from "./defaultHeaders";
 import { useAppContext } from "../context/AppContext";
+import { addActivityLog } from "./ActivityLogs";
 
 function AccountSettings() {
 
@@ -106,6 +107,11 @@ function AccountSettings() {
             .then(async response => {
                 const data = await response.json();
                 console.log(data);
+                addActivityLog(
+                    "INVITED",
+                    invitedPerson,
+                    `${userDetails.username} invited ${invitedPerson} to fridge ${fridgeDetails.name}`
+                );
             })
             .catch((err) => {
                 console.log(err)
@@ -123,7 +129,15 @@ function AccountSettings() {
                 const data = await response.json();
                 console.log(data);
                 getFridgeDetails();
-            })
+                const invite = invitesList.find(inv => inv.id === id);
+                if (invite) {
+                    addActivityLog(
+                        "JOINED",
+                        userDetails.username,
+                        `${userDetails.username} joined fridge ${invite.fridgeName}`
+                    );
+                }
+                })
             .catch((err) => {
                 console.log(err);
             })
@@ -146,6 +160,11 @@ function AccountSettings() {
                 console.log(data);
                 setFridgeDetails(data);
                 setIsFridgeConnected(true);
+                addActivityLog(
+                    "CREATED",
+                    userDetails.username,
+                    `${userDetails.username} created fridge ${fridgeDetails.name}`
+                );
             })
             .catch((err) => {
                 console.log(err)
@@ -162,6 +181,32 @@ function AccountSettings() {
                 const data = await response.json();
                 console.log(data);
                 setIsFridgeConnected(false);
+                addActivityLog(
+                    "LEFT",
+                    userDetails.username,
+                    `${userDetails.username} left fridge ${fridgeDetails.name}`
+                );
+            })
+            .catch((err) => {
+                console.log(err)
+            })
+    }
+
+    const handleDeleteFridge = () => {
+        const requestOptions = {
+            method: 'DELETE',
+            headers: defaultHeaders()
+        }
+        fetch('http://localhost:8080/api/fridge', requestOptions)
+            .then(async response => {
+                const data = await response.json();
+                console.log(data);
+                setIsFridgeConnected(false);
+                addActivityLog(
+                    "DELETED",
+                    userDetails.username,
+                    `${userDetails.username} deleted fridge ${fridgeDetails.name}`
+                );
             })
             .catch((err) => {
                 console.log(err)
@@ -252,6 +297,10 @@ function AccountSettings() {
                                         <button
                                             onClick={handleInvite}
                                         >Send invite
+                                        </button>
+                                        <button
+                                            onClick={handleDeleteFridge}
+                                        >Delete fridge
                                         </button>
                                     </div>
                                 ) : null}

@@ -29,7 +29,7 @@ function FridgeMain() {
     const handleRemoveItem = (id) => {
         const itemToRemove = fridgeItems.find(item => item.id === id);
 
-        if (itemToRemove) {
+        if (itemToRemove.quantity >= 1) {
             addActivityLog(
                 "REMOVED",
                 itemToRemove.name,
@@ -51,14 +51,14 @@ function FridgeMain() {
     const handleUpdateItem = (itemToUpdate) => {
         const originalQuantity = itemToUpdate.quantity;
         itemToUpdate.quantity--;
+        addActivityLog(
+            "CONSUMED",
+            itemToUpdate.name,
+            `Consumed 1 ${itemToUpdate.name} (${originalQuantity} → ${itemToUpdate.quantity} remaining)`
+        );
         if (itemToUpdate.quantity <= 0) {
             handleRemoveItem(itemToUpdate.id);
         } else {
-            addActivityLog(
-                "CONSUMED",
-                itemToUpdate.name,
-                `Consumed 1 ${itemToUpdate.name} (${originalQuantity} → ${itemToUpdate.quantity} remaining)`
-            );
             setFridgeItems(fridgeItems.map(item =>
                 item.id === itemToUpdate.id ? itemToUpdate : item
             ));

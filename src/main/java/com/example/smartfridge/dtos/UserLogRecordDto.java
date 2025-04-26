@@ -23,4 +23,8 @@ public class UserLogRecordDto {
     private String details;
 
     private Long userId;
+
+    private Long fridgeId;
+
+    private String username;
 }

@@ -6,6 +6,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
@@ -22,4 +25,18 @@ public class Fridge {
     @OneToOne
     @JoinColumn(name = "user_id")
     private User owner;
+    @OneToMany(
+            mappedBy = "fridgeId",
+            cascade = CascadeType.REMOVE,
+            orphanRemoval = true
+    )
+    private List<ItemRecord> items = new ArrayList<>();
+    @OneToMany(
+            mappedBy = "fridgeId",
+            cascade = CascadeType.REMOVE,
+            orphanRemoval = true
+    )
+    private List<UserLogRecord> userLogs = new ArrayList<>();
+
+
 }

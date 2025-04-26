@@ -16,7 +16,10 @@ public class UserLogController {
     private final LogsService logsService;
 
     @GetMapping("/logs")
-    public ResponseEntity<List<UserLogRecordDto>> allUserLogs() { return ResponseEntity.ok(logsService.allUserLogs()); }
+    public ResponseEntity<List<UserLogRecordDto>> allFridgeLogs() {
+        return ResponseEntity.ok(logsService.getLogsByFridge());
+    }
+    //public ResponseEntity<List<UserLogRecordDto>> allUserLogs() { return ResponseEntity.ok(logsService.allUserLogs()); }
 
     @PostMapping("/logs")
     public ResponseEntity<UserLogRecordDto> createUserLog(@RequestBody UserLogRecordDto userLogRecordDto) {

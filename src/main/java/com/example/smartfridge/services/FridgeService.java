@@ -79,9 +79,9 @@ public class FridgeService {
     }
 
     public ItemRecordDto updateItem(ItemRecordDto itemRecordDto) {
-        Fridge fridgeId = fridgeMapper.toFridge(checkCurrentUserFridge());
+        Long fridgeId = fridgeMapper.toFridge(checkCurrentUserFridge()).getId();
         ItemRecord itemRecord = itemRepository.findById(itemRecordDto.getId()).orElse(null);
-        if (itemRecord != null && fridgeId.equals(itemRecord.getFridgeId())) {
+        if (itemRecord != null && fridgeId.equals(itemRecord.getFridgeId().getId())) {
             itemRecord = itemMapper.toItemRecord(itemRecordDto);
             itemRepository.save(itemRecord);
             return itemMapper.toItemRecordDto(itemRecord);
@@ -90,9 +90,9 @@ public class FridgeService {
     }
 
     public ItemRecordDto deleteItem(Long id) {
-        Fridge fridgeId = fridgeMapper.toFridge(checkCurrentUserFridge());
+        Long fridgeId = fridgeMapper.toFridge(checkCurrentUserFridge()).getId();
         ItemRecord itemRecord = itemRepository.findById(id).orElse(null);
-        if (itemRecord != null && fridgeId.equals(itemRecord.getFridgeId())) {
+        if (itemRecord != null && fridgeId.equals(itemRecord.getFridgeId().getId())) {
             itemRepository.delete(itemRecord);
             return itemMapper.toItemRecordDto(itemRecord);
         }
@@ -118,12 +118,11 @@ public class FridgeService {
 
     public FridgeDto deleteFridge() {
         Fridge fridge = fridgeMapper.toFridge(checkCurrentUserFridge());
+        Fridge basicFridge = fridgeRepository.findById(0L).orElse(null);
         User user = getCurrentUser();
         if (fridge != null && user.getId().equals(fridge.getOwner().getId())) {
-            fridgeRepository.delete(fridge);
-            Fridge basicFridge = new Fridge();
-            basicFridge.setId(0L);
             user.setFridgeId(basicFridge);
+            fridgeRepository.delete(fridge);
             userRepository.save(user);
             return fridgeMapper.toFridgeDto(fridge);
         }
@@ -158,9 +157,8 @@ public class FridgeService {
         User user = getCurrentUser();
         if (user.getFridgeId().getId() != 0) {
             Fridge fridge = fridgeRepository.findById(user.getFridgeId().getId()).orElse(null);
+            Fridge basicFridge = fridgeRepository.findById(0L).orElse(null);
             if (fridge != null && !fridge.getOwner().getId().equals(user.getId())) {
-                Fridge basicFridge = new Fridge();
-                basicFridge.setId(0L);
                 user.setFridgeId(basicFridge);
                 userRepository.save(user);
                 return userMapper.toUserDto(user);
@@ -174,8 +172,8 @@ public class FridgeService {
         User user = getCurrentUser();
         FridgeInvites invite = fridgeInvitesRepository.findById(inviteId).orElse(null);
         if (invite != null && user.getFridgeId().getId() == 0) {
-            Fridge newFridge = new Fridge();
-            newFridge.setId(invite.getFridgeId().getId());
+            Fridge newFridge = fridgeRepository.findById(invite.getFridgeId().getId())
+                    .orElseThrow(() -> new RuntimeException("Fridge not found"));
             user.setFridgeId(newFridge);
             invite.setStatus("accepted");
             fridgeInvitesRepository.save(invite);

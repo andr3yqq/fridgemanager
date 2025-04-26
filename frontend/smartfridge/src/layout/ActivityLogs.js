@@ -49,6 +49,7 @@ export function ActivityLogs() {
                         <thead className="itemsTableHeadBase">
                         <tr>
                             <th className="itemsTableHead">Time</th>
+                            <th className="itemsTableHead">User</th>
                             <th className="itemsTableHead">Action</th>
                             <th className="itemsTableHead">Item</th>
                             <th className="itemsTableHead">Details</th>
@@ -58,6 +59,7 @@ export function ActivityLogs() {
                         {filteredLogs.map((log, index) => (
                             <tr key={index}>
                                 <td className="itemsTableData">{formatTimestamp(log.timestamp)}</td>
+                                <td className="itemsTableData">{log.username}</td>
                                 <td className="itemsTableData">
                                             <span className={`itemsCategory ${
                                                 log.action === "ADDED" ? "bg-green-100 text-green-800" :

@@ -4,6 +4,7 @@ import com.example.smartfridge.dtos.UserDto;
 import com.example.smartfridge.entities.Fridge;
 import com.example.smartfridge.entities.User;
 import com.example.smartfridge.mappers.UserMapper;
+import com.example.smartfridge.repositories.FridgeRepository;
 import com.example.smartfridge.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -20,6 +21,7 @@ public class AuthenticationService implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final FridgeRepository fridgeRepository;
 
     public UserDto findUserByEmail(String email) {
         User user = userRepository.findUserByEmail(email).orElse(null);
@@ -77,7 +79,7 @@ public class AuthenticationService implements UserDetailsService {
             throw new IllegalArgumentException("Email is already taken.");
         }
 
-        Fridge fridge = new Fridge(0L, "Basic", null);
+        Fridge fridge = fridgeRepository.findById(0L).orElse(null);
         User newUser = new User(
                 null,
                 userDto.getUsername(),
