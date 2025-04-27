@@ -9,7 +9,8 @@ import {ActivityLogs} from "./layout/ActivityLogs";
 import AddItem from "./layout/AddItem";
 import AccountSettings from "./layout/AccountSettings";
 import defaultHeaders from "./layout/defaultHeaders";
-import { useAppContext } from "./context/AppContext";
+import {useAppContext} from "./context/AppContext";
+import GroceryList from "./layout/GroceryList";
 
 function App() {
 
@@ -57,6 +58,7 @@ function App() {
         { label: "Add item", view: "add" },
         { label: "Activity Logs", view: "logs" },
         { label: "Account Settings", view: "settings" },
+        {label: "Grocery Lists", view: "grocery"},
     ];
 
 
@@ -88,7 +90,7 @@ function App() {
             <SignupPage handleViewToggle={() => handleView("items")} />
         )}
         {view === "settings" && <AccountSettings />}
-
+        {view === "grocery" && <GroceryList/>}
         <Footer />
     </div>
   );

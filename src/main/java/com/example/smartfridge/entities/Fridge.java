@@ -37,6 +37,12 @@ public class Fridge {
             orphanRemoval = true
     )
     private List<UserLogRecord> userLogs = new ArrayList<>();
+    @OneToMany(
+            mappedBy = "fridge",
+            cascade = CascadeType.REMOVE,
+            orphanRemoval = true
+    )
+    private List<GroceryList> groceryLists = new ArrayList<>();
 
 
 }

@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.example</groupId>
     <artifactId>smartfridge</artifactId>
-    <version>0.6.0-SNAPSHOT</version>
+    <version>0.7.0-SNAPSHOT</version>
     <name>smartfridge</name>
     <description>smartfridge</description>
     <url/>
@@ -33,6 +33,7 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
+            <version>3.4.5</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

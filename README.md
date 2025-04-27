@@ -10,6 +10,7 @@ This project currently in development, so some features may not work correctly o
 - User authentication and role management
 - Add, update, and remove food items from the fridge
 - Track expiration dates
+- Manage your grocery lists and add items from list to fridge when purchased
 - RESTful API for frontend integration
 
 ## Technologies Used
@@ -18,4 +19,4 @@ This project currently in development, so some features may not work correctly o
 - PostgreSQL
 - Hibernate (JPA)
 - REST API
-- React (Frontend - in progress)
+- React
