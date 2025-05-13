@@ -1,13 +1,43 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import {useAppContext} from "../context/AppContext";
 import defaultHeaders from "./defaultHeaders";
+import {addActivityLog} from "./ActivityLogs";
 
 const API_BASE_URL = 'http://localhost:8080/api/grocery';
+
+const Modal = ({isOpen, onClose, title, children}) => {
+    if (!isOpen) return null;
+
+    return (
+        <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }}>
+            <div style={{
+                backgroundColor: 'white', padding: '20px', borderRadius: '8px',
+                minWidth: '300px', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto'
+            }}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                    <h3>{title}</h3>
+                    <button onClick={onClose} style={{
+                        background: 'none',
+                        border: 'none',
+                        fontSize: '1.5rem',
+                        cursor: 'pointer'
+                    }}>&times;</button>
+                </div>
+                {children}
+            </div>
+        </div>
+    );
+}
 
 function GroceryLists() {
     const [lists, setLists] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [successMessage, setSuccessMessage] = useState('');
     const [newListName, setNewListName] = useState('');
     const [newListDescription, setNewListDescription] = useState('');
     const {userData} = useAppContext();
@@ -22,6 +52,17 @@ function GroceryLists() {
 
     const [addingToListId, setAddingToListId] = useState(null);
     const [newItem, setNewItem] = useState(initialNewItemState);
+
+    const [viewingListId, setViewingListId] = useState(null);
+    const [listItems, setListItems] = useState([]);
+    const [itemsLoading, setItemsLoading] = useState(false);
+    const [itemsError, setItemsError] = useState(null);
+
+    const [isPriceExpiryModalOpen, setIsPriceExpiryModalOpen] = useState(false);
+    const [itemsForModal, setItemsForModal] = useState([]);
+    const [currentListIdForModal, setCurrentListIdForModal] = useState(null);
+
+    const allItemsPurchasedInView = viewingListId !== null && listItems.length > 0 && listItems.every(item => item.purchased);
 
     const fetchLists = useCallback(async () => {
         if (userData.fridgeId !== 0) {
@@ -41,7 +82,7 @@ function GroceryLists() {
                 setLoading(false);
             }
         }
-    }, []);
+    }, [userData.fridgeId]);
 
     useEffect(() => {
         fetchLists();
@@ -54,6 +95,7 @@ function GroceryLists() {
             return;
         }
         setError(null);
+        setSuccessMessage('');
         try {
             const response = await fetch(`${API_BASE_URL}/${encodeURIComponent(newListName)}`, {
                 method: 'POST',
@@ -69,6 +111,7 @@ function GroceryLists() {
             setLists(prevLists => [...prevLists, createdList]);
             setNewListName('');
             setNewListDescription('');
+            setSuccessMessage(`List "${createdList.name}" added successfully!`);
 
         } catch (e) {
             console.error("Error adding list:", e);
@@ -81,6 +124,7 @@ function GroceryLists() {
             return;
         }
         setError(null);
+        setSuccessMessage('');
         try {
             const response = await fetch(`${API_BASE_URL}/${listId}`, {
                 method: 'DELETE',
@@ -90,6 +134,11 @@ function GroceryLists() {
                 throw new Error(`Failed to delete list: ${response.status}`);
             }
             setLists(prevLists => prevLists.filter(list => list.id !== listId));
+            if (viewingListId === listId) {
+                setViewingListId(null);
+                setListItems([]);
+            }
+            setSuccessMessage('List deleted successfully.');
         } catch (e) {
             console.error("Error deleting list:", e);
             setError(`Failed to delete list: ${e.message}`);
@@ -97,12 +146,15 @@ function GroceryLists() {
     };
 
     const handleToggleAddItemForm = (listId) => {
+        setSuccessMessage('');
+        setError(null);
         if (addingToListId === listId) {
             setAddingToListId(null);
         } else {
             setAddingToListId(listId);
             setNewItem(initialNewItemState);
-            setError(null);
+            setViewingListId(null);
+            setListItems([]);
         }
     };
 
@@ -121,12 +173,13 @@ function GroceryLists() {
             return;
         }
         setError(null);
+        setSuccessMessage('');
         const newItemDto = {
             name: newItem.name,
             description: newItem.description || null,
-            quantity: newItem.quantity || null,
+            quantity: newItem.quantity || 0,
             category: newItem.category || null,
-            purchased: false,
+            purchased: newItem.purchased || false,
         };
 
         console.log("Attempting to add item:", newItemDto, "to list:", listId);
@@ -143,16 +196,169 @@ function GroceryLists() {
                 throw new Error(`Failed to add item: ${response.status} ${errorData}`);
             }
 
-            console.log("Item added successfully!");
+            const addedItem = await response.json();
+            setSuccessMessage(`Item "${addedItem.name}" added successfully!`);
             setNewItem(initialNewItemState);
             setAddingToListId(null);
-            // Optionally: show a success message
-            // Note: This component doesn't display items, so no list update needed here.
-            // A separate component showing list details would fetch updated items.
-
+            if (viewingListId === listId) {
+                fetchListItems(listId);
+            }
         } catch (e) {
             console.error("Error adding item:", e);
             setError(`Failed to add item: ${e.message}`);
+        }
+    };
+
+    const fetchListItems = async (listId) => {
+        setItemsLoading(true);
+        setItemsError(null);
+        try {
+            const response = await fetch(`${API_BASE_URL}/${listId}/items`, {headers: defaultHeaders()});
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            setListItems(data);
+        } catch (e) {
+            console.error("Failed to fetch list items:", e);
+            setItemsError('Failed to load items. Please try again.');
+            setListItems([]);
+        } finally {
+            setItemsLoading(false);
+        }
+    };
+
+    const handleToggleViewItems = (listId) => {
+        setSuccessMessage('');
+        if (viewingListId === listId) {
+            setViewingListId(null);
+            setListItems([]);
+        } else {
+            setViewingListId(listId);
+            fetchListItems(listId);
+            setAddingToListId(null);
+        }
+    };
+
+    const handleToggleItemPurchased = async (itemId, currentPurchasedStatus) => {
+        const newPurchasedStatus = !currentPurchasedStatus;
+        setError(null);
+        setSuccessMessage('');
+        setListItems(prevItems =>
+            prevItems.map(item =>
+                item.id === itemId ? {...item, purchased: newPurchasedStatus} : item
+            )
+        );
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/items/${itemId}/purchase?purchased=${newPurchasedStatus}`, {
+                method: 'PATCH',
+                headers: defaultHeaders(),
+            });
+
+            if (!response.ok) {
+                setListItems(prevItems =>
+                    prevItems.map(item =>
+                        item.id === itemId ? {...item, purchased: currentPurchasedStatus} : item
+                    )
+                );
+                throw new Error(`Failed to update purchase status: ${response.status}`);
+            }
+            const updatedItem = await response.json();
+            setListItems(prevItems =>
+                prevItems.map(item =>
+                    item.id === updatedItem.id ? updatedItem : item
+                )
+            );
+        } catch (e) {
+            console.error("Failed to update item purchase status:", e);
+            setError('Failed to update item. Please try again.');
+            setListItems(prevItems =>
+                prevItems.map(item =>
+                    item.id === itemId ? {...item, purchased: currentPurchasedStatus} : item
+                )
+            );
+        }
+    };
+
+    const openPriceExpiryModal = (listId) => {
+        const purchasedItems = listItems.filter(item => item.purchased);
+        if (purchasedItems.length === 0) {
+            setError("No purchased items to add to the fridge.");
+            return;
+        }
+        setItemsForModal(purchasedItems.map(item => ({
+            groceryItemId: item.id,
+            category: item.category,
+            name: item.name,
+            quantity: item.quantity,
+            price: '',
+            expirationDate: ''
+        })));
+        setCurrentListIdForModal(listId);
+        setIsPriceExpiryModalOpen(true);
+        setError(null);
+    };
+
+    const handleModalItemChange = (index, field, value) => {
+        setItemsForModal(prevItems =>
+            prevItems.map((item, i) =>
+                i === index ? {...item, [field]: value} : item
+            )
+        );
+    };
+
+    const handleSubmitFridgeDetails = async () => {
+        if (!currentListIdForModal) return;
+        setError(null);
+        setSuccessMessage('');
+
+        for (const item of itemsForModal) {
+            if (item.price && isNaN(parseFloat(item.price))) {
+                setError(`Invalid price for ${item.name}. Please enter a number.`);
+                return;
+            }
+            if (item.expirationDate && isNaN(new Date(item.expirationDate).getTime())) {
+                setError(`Invalid expiration date for ${item.name}.`);
+                return;
+            }
+        }
+
+        const payload = itemsForModal.map(item => ({
+            id: item.groceryItemId,
+            name: item.name,
+            description: item.description,
+            quantity: item.quantity,
+            category: item.category,
+            price: item.price ? parseFloat(item.price) : null,
+            expirationDate: item.expirationDate || null,
+        }));
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/${currentListIdForModal}/move-to-fridge`, {
+                method: 'POST',
+                headers: defaultHeaders(),
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to move items to fridge: ${response.status} - ${errorText}`);
+            }
+            setSuccessMessage('Purchased items moved to fridge with details!');
+            setIsPriceExpiryModalOpen(false);
+            setItemsForModal([]);
+            setViewingListId(null);
+            for (const newItem of payload) {
+                addActivityLog(
+                    "ADDED",
+                    newItem.name,
+                    `Added ${newItem.quantity} ${newItem.name} (${newItem.category}) with expiry date ${newItem.expirationDate}`
+                );
+            }
+        } catch (e) {
+            console.error("Error moving items to fridge:", e);
+            setError(`Failed to move items: ${e.message}`);
         }
     };
 
@@ -161,13 +367,24 @@ function GroceryLists() {
         return <div>Loading grocery lists...</div>;
     }
 
-    if (error) {
-        return <div style={{color: 'red'}}>Error: {error}</div>;
-    }
-
     return (
         <div>
             <h2>My Grocery Lists</h2>
+
+            {error && <div style={{
+                color: 'red',
+                marginBottom: '10px',
+                padding: '10px',
+                border: '1px solid red',
+                borderRadius: '4px'
+            }}>Error: {error}</div>}
+            {successMessage && <div style={{
+                color: 'green',
+                marginBottom: '10px',
+                padding: '10px',
+                border: '1px solid green',
+                borderRadius: '4px'
+            }}>{successMessage}</div>}
 
             <form onSubmit={handleAddList}
                   style={{marginBottom: '20px', border: '1px solid #ccc', padding: '15px', borderRadius: '5px'}}>
@@ -215,10 +432,15 @@ function GroceryLists() {
                                     <strong>{list.name}</strong>
                                     {list.description &&
                                         <span style={{marginLeft: '10px', color: '#555'}}> - {list.description}</span>}
-                                    {/* Add link/button to view items if you have a separate details page */}
-                                    {/* Example: <Link to={`/lists/${list.id}`}>View Items</Link> */}
                                 </div>
                                 <div>
+                                    <button
+                                        onClick={() => handleToggleViewItems(list.id)}
+                                        style={{marginLeft: '10px', cursor: 'pointer'}}
+                                        aria-expanded={viewingListId === list.id}
+                                    >
+                                        {viewingListId === list.id ? 'Hide Items' : 'View Items'}
+                                    </button>
                                     <button
                                         onClick={() => handleToggleAddItemForm(list.id)}
                                         style={{marginLeft: '15px', cursor: 'pointer'}}
@@ -226,7 +448,6 @@ function GroceryLists() {
                                     >
                                         {addingToListId === list.id ? 'Cancel Add' : 'Add Item'}
                                     </button>
-                                    {/* You could add an Edit List button here too */}
                                     <button
                                         onClick={() => handleDeleteList(list.id)}
                                         style={{
@@ -243,6 +464,60 @@ function GroceryLists() {
                                     </button>
                                 </div>
                             </div>
+                            {viewingListId === list.id && (
+                                <div style={{marginTop: '15px', paddingLeft: '20px'}}>
+                                    {itemsLoading && <p>Loading items...</p>}
+                                    {itemsError && <p style={{color: 'red'}}>{itemsError}</p>}
+                                    {!itemsLoading && !itemsError && listItems.length === 0 && (
+                                        <p>No items in this list yet.</p>
+                                    )}
+                                    {!itemsLoading && !itemsError && listItems.length > 0 && (
+                                        <>
+                                            <ul style={{listStyleType: 'none', paddingLeft: 0}}>
+                                                {listItems.map(item => (
+                                                    <li key={item.id} style={{
+                                                        padding: '8px',
+                                                        borderBottom: '1px solid #f0f0f0',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        textDecoration: item.purchased ? 'line-through' : 'none',
+                                                        color: item.purchased ? '#888' : 'inherit'
+                                                    }}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={item.purchased}
+                                                            onChange={() => handleToggleItemPurchased(item.id, item.purchased)}
+                                                            style={{marginRight: '10px', cursor: 'pointer'}}
+                                                        />
+                                                        <span>
+                                                        <strong>{item.name}</strong>
+                                                            {item.description && ` - ${item.description}`}
+                                                            {item.quantity && ` (Qty: ${item.quantity})`}
+                                                            {item.category && ` [${item.category}]`}
+                                                    </span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                            {allItemsPurchasedInView && (
+                                                <button
+                                                    onClick={() => openPriceExpiryModal(list.id)}
+                                                    style={{
+                                                        marginTop: '15px',
+                                                        backgroundColor: '#28a745',
+                                                        color: 'white',
+                                                        padding: '8px 15px',
+                                                        border: 'none',
+                                                        borderRadius: '4px',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    Add All to Fridge
+                                                </button>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            )}
                             {addingToListId === list.id && (
                                 <form onSubmit={(e) => handleAddItemSubmit(e, list.id)} style={{
                                     marginTop: '10px',
@@ -266,13 +541,12 @@ function GroceryLists() {
                                     <div style={{marginBottom: '5px'}}>
                                         <label htmlFor={`itemName-${list.id}`}>Item Description: </label>
                                         <input
-                                            id={`itemName-${list.id}`}
+                                            id={`itemDesc-${list.id}`}
                                             type="text"
                                             name="description"
                                             value={newItem.description}
                                             onChange={handleNewItemChange}
                                             placeholder="e.g., Milk lidl 100ml"
-                                            required
                                             style={{marginRight: '10px'}}
                                         />
                                     </div>
@@ -311,6 +585,55 @@ function GroceryLists() {
                     ))}
                 </ul>
             )}
+            <Modal isOpen={isPriceExpiryModalOpen} onClose={() => setIsPriceExpiryModalOpen(false)}
+                   title="Enter Item Details for Fridge">
+                {error &&
+                    <div style={{color: 'red', marginBottom: '10px'}}>{error}</div>} {/* Error display inside modal */}
+                <form onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSubmitFridgeDetails();
+                }}>
+                    {itemsForModal.map((item, index) => (
+                        <div key={item.groceryItemId}
+                             style={{marginBottom: '15px', paddingBottom: '10px', borderBottom: '1px solid #eee'}}>
+                            <strong>{item.name}</strong> (Qty: {item.quantity || 1})
+                            <div style={{marginTop: '5px'}}>
+                                <label htmlFor={`price-${item.groceryItemId}`}
+                                       style={{marginRight: '5px'}}>Price:</label>
+                                <input
+                                    type="number"
+                                    id={`price-${item.groceryItemId}`}
+                                    value={item.price}
+                                    onChange={(e) => handleModalItemChange(index, 'price', e.target.value)}
+                                    placeholder="e.g., 2.99"
+                                    step="0.01"
+                                    style={{width: '80px', marginRight: '10px'}}
+                                />
+                                <label htmlFor={`expiry-${item.groceryItemId}`} style={{marginRight: '5px'}}>Expiry
+                                    Date:</label>
+                                <input
+                                    type="date"
+                                    id={`expiry-${item.groceryItemId}`}
+                                    value={item.expirationDate}
+                                    onChange={(e) => handleModalItemChange(index, 'expirationDate', e.target.value)}
+                                    style={{width: '150px'}}
+                                />
+                            </div>
+                        </div>
+                    ))}
+                    <button type="submit" style={{
+                        marginTop: '10px',
+                        padding: '10px 15px',
+                        backgroundColor: '#007bff',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                    }}>
+                        Confirm & Add to Fridge
+                    </button>
+                </form>
+            </Modal>
         </div>
     );
 }

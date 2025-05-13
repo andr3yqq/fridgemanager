@@ -3,26 +3,33 @@ package com.example.smartfridge.services;
 import com.example.smartfridge.dtos.FridgeDto;
 import com.example.smartfridge.dtos.GroceryItemDto;
 import com.example.smartfridge.dtos.GroceryListDto;
+import com.example.smartfridge.dtos.ItemRecordDto;
 import com.example.smartfridge.entities.GroceryItem;
 import com.example.smartfridge.entities.GroceryList;
+import com.example.smartfridge.entities.ItemRecord;
 import com.example.smartfridge.entities.User;
 import com.example.smartfridge.mappers.FridgeMapper;
 import com.example.smartfridge.mappers.GroceryItemMapper;
 import com.example.smartfridge.mappers.GroceryListMapper;
 import com.example.smartfridge.repositories.GroceryItemRepository;
 import com.example.smartfridge.repositories.GroceryListRepository;
+import com.example.smartfridge.repositories.ItemRepository;
 import com.example.smartfridge.repositories.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
 public class GroceryService {
+    private final ItemRepository itemRecordRepository;
     private final GroceryItemRepository groceryItemRepository;
     private final GroceryListRepository groceryListRepository;
     private final UserRepository userRepository;
@@ -147,4 +154,48 @@ public class GroceryService {
         }
         return null;
     }
+
+    public GroceryItemDto toggleItemPurchased(Long itemId, boolean purchased) {
+        User user = getCurrentUser();
+        GroceryItem groceryItem = groceryItemRepository.findById(itemId)
+                .orElseThrow(() -> new RuntimeException("Grocery item not found with id: " + itemId));
+
+        if (groceryItem.getGroceryList() == null ||
+                !Objects.equals(groceryItem.getGroceryList().getFridge().getId(), user.getFridgeId().getId())) {
+            throw new SecurityException("User does not have permission to modify this item.");
+        }
+
+        groceryItem.setPurchased(purchased);
+        groceryItemRepository.save(groceryItem);
+        return groceryItemMapper.toGroceryItemDto(groceryItem);
+    }
+
+    @Transactional
+    public void movePurchasedItemsToFridge(Long listId, List<ItemRecordDto> purchasedItems) {
+        User user = getCurrentUser();
+        GroceryList groceryList = groceryListRepository.findById(listId)
+                .orElseThrow(() -> new RuntimeException("Grocery list not found with id: " + listId));
+
+        if (!Objects.equals(groceryList.getFridge().getId(), user.getFridgeId().getId())) {
+            throw new SecurityException("User does not have permission to modify this list.");
+        }
+
+        List<ItemRecord> fridgeItemsToAdd = new ArrayList<>();
+        for (ItemRecordDto purchasedItem : purchasedItems) {
+            toggleItemPurchased(purchasedItem.getId(), false);
+            ItemRecord fridgeItem = new ItemRecord();
+            fridgeItem.setName(purchasedItem.getName());
+            fridgeItem.setDescription(purchasedItem.getDescription());
+            fridgeItem.setQuantity(purchasedItem.getQuantity());
+            fridgeItem.setCategory(purchasedItem.getCategory());
+            fridgeItem.setPrice(purchasedItem.getPrice());
+            fridgeItem.setExpirationDate(purchasedItem.getExpirationDate());
+            fridgeItem.setBuyingDate(LocalDate.now());
+            fridgeItem.setFridgeId(groceryList.getFridge());
+            fridgeItemsToAdd.add(fridgeItem);
+        }
+
+        itemRecordRepository.saveAll(fridgeItemsToAdd);
+    }
+
 }
