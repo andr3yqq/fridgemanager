@@ -1,155 +1,262 @@
-.mainFridge {
-    min-height: 79vh;
+.fridge-main-container {
+    padding: 20px;
+    background-color: #f9f9f9; /* Light background for the main content area */
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    flex-grow: 1; /* Allows it to take space in flex layout */
+}
+
+.fridge-header {
     display: flex;
-    flex-direction: column;
-}
-
-.navRow {
-    display: flex;
-    flex-direction: row;
-    min-width: 100%;
-    height: 7vh;
-    background-color: #F3F4F6;
-}
-
-.navButton {
-    border: 0;
-    margin-right: 2vh;
-    margin-left: 3vh;
-    font-size: 0.875rem;
-}
-
-.viewAllItems {
+    justify-content: space-between;
     align-items: center;
+    margin-bottom: 25px;
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+    gap: 15px;
+}
+
+.fridge-header h2 {
+    font-size: 1.8em;
+    color: #333;
+    margin: 0;
+}
+
+.fridge-search-bar {
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.95em;
+    min-width: 250px; /* Minimum width for search bar */
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.fridge-search-bar:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+    outline: none;
+}
+
+.fridge-message-container, .fridge-loading, .fridge-error {
     text-align: center;
+    padding: 40px 20px;
+    color: #555;
+    font-size: 1.1em;
+    background-color: #fff;
+    border-radius: 6px;
+    border: 1px dashed #eee;
 }
 
-/*.searchBar {
-    min-width: 75vh;
-    height: 5vh;
-    border-radius: 15px;
-    border-color: lightgray;
-    font-size: 15px;
-}*/
-
-.searchBar {
-    padding: 0.5rem;
-    border-radius: 0.25rem;
-    border-width: 1px;
-    width: 75%;
+.fridge-loading {
+    color: #007bff;
 }
 
-.itemsTable {
-    border-top-width: 1px;
-    border-color: #E5E7EB;
-    min-width: 100%;
+.fridge-error {
+    color: #dc3545;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
 }
 
-.itemsCategory {
-    padding-top: 0.25rem;
-    padding-bottom: 0.25rem;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-    border-radius: 0.25rem;
-    background-color: #F3F4F6;
-}
 
-.items {
-    border-radius: 0.5rem;
+.table-responsive-container {
+    overflow-x: auto; /* Allows horizontal scrolling for the table on small screens */
     background-color: #ffffff;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.noItems {
-    padding: 1rem;
-    text-align: center;
-    color: #6B7280;
+.fridge-items-table {
+    width: 100%;
+    border-collapse: collapse; /* Cleaner table lines */
+    font-size: 0.9em;
 }
 
-.itemsTableHeadBase {
-    background-color: #F9FAFB;
-}
-
-.itemsTableHead {
-    padding: 1rem;
-    font-size: 0.875rem;
-    line-height: 1.25rem;
-    font-weight: 500;
+.fridge-items-table th,
+.fridge-items-table td {
+    padding: 12px 15px;
     text-align: left;
-    color: #6B7280;
+    border-bottom: 1px solid #e9ecef; /* Light lines between rows */
 }
 
-.itemsTableBody {
-    border-top-width: 1px;
-    border-color: #E5E7EB;
+.fridge-items-table th {
+    background-color: #f8f9fa; /* Light grey for table header */
+    color: #495057;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
-.itemsTableData {
-    padding: 1rem;
+.fridge-items-table tbody tr:last-child td {
+    border-bottom: none; /* No border for the last row */
 }
 
-.itemsRemoveButton {
-    background-color: white;
-    border: white;
-    color: #EF4444;
+.fridge-items-table tbody tr:hover {
+    background-color: #f1f3f5; /* Hover effect for rows */
 }
 
-.itemsRemoveButton:hover {
-    color: #B91C1C;
+/* Expiry status classes */
+.fridge-items-table tr.fresh td.expiry-date-cell { /* Be more specific */
+    color: #28a745; /* Green for fresh */
+    font-weight: 500;
 }
 
-.addItem {
-    height: 74vh;
-     padding: 1rem;
-     margin-bottom: 1.5rem;
-     border-radius: 0.5rem;
-     background-color: #F3F4F6;
+.fridge-items-table tr.expires-soon td.expiry-date-cell {
+    color: #fd7e14; /* Orange for expires soon */
+    font-weight: 500;
+}
+
+.fridge-items-table tr.expired td.expiry-date-cell {
+    color: #dc3545; /* Red for expired */
+    font-weight: bold;
+}
+
+.fridge-items-table tr.expired {
+    /* background-color: #ffebee; /* Optional: Light red background for entire expired row */
+    opacity: 0.8; /* Make expired items slightly less prominent */
+}
+
+
+.expiry-days {
+    font-size: 0.85em;
+    color: #6c757d; /* Muted color for days count */
+    margin-left: 5px;
+    display: block; /* New line for days */
+}
+
+.category-badge {
+    background-color: #e9ecef;
+    color: #495057;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    display: inline-block;
+}
+
+.quantity-cell {
     display: flex;
-    flex-direction: column;
- }
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
 
-.addItemElements {
+.quantity-controls {
     display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    gap: 5px;
 }
 
-.addItemBaseInput {
-    padding: 0.5rem;
-    border-radius: 0.25rem;
-    border-width: 1px;
-    width: 50%;
+.action-button {
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    padding: 6px 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
 }
 
-.addItemInput20 {
-    padding: 0.5rem;
-    border-radius: 0.25rem;
-    border-width: 1px;
-    width:20%;
+.action-button svg {
+    transition: fill 0.2s;
 }
 
-.addItemCalendarInput {
-    padding: 0.5rem;
-    border-radius: 0.25rem;
-    border-width: 1px;
-    width:100px;
+.consume-button {
+    color: #007bff; /* Blue */
 }
 
-.addItemHead {
-     margin-bottom: 0.5rem;
-     font-size: 1.125rem;
-     line-height: 1.75rem;
-     font-weight: 600;
- }
+.consume-button:hover {
+    background-color: #e7f3ff;
+    border-color: #cce3ff;
+}
 
-.addItemButton {
-    width: 3%;
-    text-align: center;
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
-    border-radius: 0.25rem;
-    color: #ffffff;
-    background-color: #3B82F6;
+.consume-button:disabled {
+    color: #adb5bd;
+    cursor: not-allowed;
+}
+
+.consume-button:disabled:hover {
+    background-color: transparent;
+    border-color: transparent;
+}
+
+.consume-button:disabled svg {
+    fill: #adb5bd;
+}
+
+
+.remove-button {
+    color: #dc3545; /* Red */
+}
+
+.remove-button .button-text {
+    font-size: 0.9em;
+}
+
+.remove-button:hover {
+    background-color: #ffe3e6;
+    border-color: #ffc2c9;
+}
+
+.remove-button svg {
+    fill: #dc3545;
+}
+
+.remove-button:hover svg {
+    fill: #c82333;
+}
+
+@media screen and (max-width: 768px) {
+    .fridge-items-table thead {
+        display: none; /* Hide table headers */
+    }
+
+    .fridge-items-table tr {
+        display: block;
+        margin-bottom: 15px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .fridge-items-table td {
+        display: block;
+        text-align: right; /* Align content to the right */
+        padding-left: 50%; /* Create space for the label */
+        position: relative;
+        border-bottom: 1px solid #eee;
+    }
+
+    .fridge-items-table td:last-child {
+        border-bottom: none;
+    }
+
+    .fridge-items-table td::before {
+        content: attr(data-label); /* Use data-label for pseudo-element */
+        position: absolute;
+        left: 10px;
+        font-weight: bold;
+        text-align: left;
+        white-space: nowrap;
+    }
+
+    .quantity-cell {
+        justify-content: flex-end; /* Align quantity controls to the right */
+    }
+
+    .actions-cell {
+        text-align: center; /* Center actions */
+    }
+
+    .actions-cell .action-button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .fridge-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .fridge-search-bar {
+        width: 100%;
+        min-width: unset;
+    }
 }

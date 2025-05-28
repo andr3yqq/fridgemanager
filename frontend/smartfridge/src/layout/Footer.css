@@ -1,0 +1,20 @@
+.app-footer {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    padding: 20px 25px;
+    text-align: center;
+    border-top: 1px solid #e7e7e7;
+    font-size: 0.9em;
+    margin-top: auto; /* This might not be needed if App's flex keeps it down */
+}
+
+.app-footer > p {
+    margin: 0;
+}
+
+.app-footer-logo {
+    height: 20px;
+    vertical-align: middle;
+    margin-right: 8px;
+    opacity: 0.7;
+}

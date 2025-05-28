@@ -28,7 +28,8 @@ function App() {
             if (!response.ok) {
                 setIsAuthenticated(false);
                 setView("login");
-                throw new Error(`HTTP error! Status: ${response.status}`);
+                console.error(`HTTP error! Status: ${response.status}`);
+                return;
             }
             const data = await response.json();
             setUserData(data);
@@ -36,6 +37,8 @@ function App() {
             setIsAuthenticated(true);
             setView("items");
         } catch (error) {
+            setIsAuthenticated(false);
+            setView("login");
             console.error("Login failed:", error.message);
         }
     }, [setIsAuthenticated, setUserData, setView]);
@@ -44,12 +47,12 @@ function App() {
         auth();
     }, [auth]);
 
-    //const [view, setView] = useState("login"); // 'login', 'signup', 'items', 'add', 'logs', 'settings'
     const handleView = (newView) => setView(newView);
 
     const handleLogout = () => {
         localStorage.removeItem("token");
         setIsAuthenticated(false);
+        setUserData(null);
         setView("login")
     }
 
@@ -64,35 +67,45 @@ function App() {
 
   return (
     <div className="App">
-      <Header />
+        <Header/>
         {isAuthenticated ? (
-            <div className="navRow">
-                {navButtons.map(btn => (
-                    <button key={btn.view} className="navButton" onClick={() => handleView(btn.view)}>
-                        {btn.label}
+            <div className="app-layout-authenticated">
+                <nav className="sidebar">
+                    {/* <h3 className="sidebar-title">My App</h3> */}
+                    {navButtons.map(btn => (
+                        <button
+                            key={btn.view}
+                            className={`sidebar-nav-button ${view === btn.view ? 'active' : ''}`}
+                            onClick={() => handleView(btn.view)}
+                        >
+                            {btn.label} {/* Icons could be added here too */}
+                        </button>
+                    ))}
+                    <button className="sidebar-nav-button logout-button" onClick={handleLogout}>
+                        Logout
                     </button>
-                ))}
-                <button className="navButton" onClick={handleLogout}>Logout</button>
+                </nav>
+                <main className="main-content">
+                    {view === "logs" && <ActivityLogs/>}
+                    {view === "add" && <AddItem/>}
+                    {view === "items" && <FridgeMain/>}
+                    {view === "settings" && <AccountSettings/>}
+                    {view === "grocery" && <GroceryList/>}
+                </main>
             </div>
         ) : (
-            <div className="navRow">
-                <button className="navButton" onClick={() => handleView("login")}>Login</button>
-                <button className="navButton" onClick={() => handleView("signup")}>Signup</button>
+            <div className="auth-container">
+                {view === "login" && (
+                    <LoginPage/>
+                )}
+                {view === "signup" && (
+                    <SignupPage/>
+                )}
             </div>
         )}
-        {view === "logs" && <ActivityLogs />}
-        {view === "add" && <AddItem />}
-        {view === "items" && <FridgeMain />}
-        {view === "login" && (
-            <LoginPage handleViewToggle={() => handleView("items")} />
-        )}
-        {view === "signup" && (
-            <SignupPage handleViewToggle={() => handleView("items")} />
-        )}
-        {view === "settings" && <AccountSettings />}
-        {view === "grocery" && <GroceryList/>}
         <Footer />
     </div>
+
   );
 }
 

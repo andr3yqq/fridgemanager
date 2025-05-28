@@ -1,10 +1,11 @@
 import logo from './logo.svg';
+import './Footer.css';
 
 function Footer() {
     return (
-        <footer className="App-footer">
-            <img src={logo} className="App-logo" alt="logo" />
-            <p>SmartFridge testing 2025</p>
+        <footer className="app-footer">
+            <p><img src={logo} className="app-footer-logo" alt="logo"/> &copy; {new Date().getFullYear()} SmartFridge
+                App. All rights reserved.</p>
         </footer>
     );
 }

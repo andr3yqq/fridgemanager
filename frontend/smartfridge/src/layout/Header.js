@@ -1,10 +1,11 @@
 import logo from './logo.svg';
+import './Header.css';
 
 function Header() {
     return (
-            <header className="App-header">
-                <img src={logo} className="App-logo" alt="logo" />
-                <p>SmartFridge testing</p>
+        <header className="app-header">
+            <img src={logo} className="app-header-logo" alt="logo"/>
+            <div className="app-header-title">SmartFridge App</div>
             </header>
     );
 }
