@@ -1,4 +1,258 @@
-.account-settings-content {
+.account-settings-container {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 25px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.account-settings-loading {
+    text-align: center;
+    padding: 40px;
+    font-size: 1.2em;
+    color: #555;
+}
+
+.main-header {
+    text-align: center;
+    color: #333;
+    font-size: 2em;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 15px;
+}
+
+.settings-section {
+    background-color: #fff;
+    padding: 20px;
+    margin-bottom: 25px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.section-title {
+    font-size: 1.5em;
+    color: #007bff;
+    margin-top: 0;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.subsection-title {
+    font-size: 1.2em;
+    color: #333;
+    margin-top: 20px;
+    margin-bottom: 15px;
+}
+
+.form-group {
+    margin-bottom: 18px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 6px;
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="password"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 1em;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input:disabled {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+
+.form-group input:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+    outline: none;
+}
+
+.password-display {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.password-display input {
+    flex-grow: 1;
+}
+
+button {
+    padding: 10px 18px;
+    font-size: 0.95em;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+    border: 1px solid transparent;
+    font-weight: 500;
+}
+
+.button-primary {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.button-primary:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+
+.button-secondary {
+    background-color: #6c757d;
+    color: white;
+    border-color: #6c757d;
+}
+
+.button-secondary:hover {
+    background-color: #545b62;
+    border-color: #545b62;
+}
+
+.button-danger {
+    background-color: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}
+
+.button-danger:hover {
+    background-color: #c82333;
+    border-color: #c82333;
+}
+
+.button-success {
+    background-color: #28a745;
+    color: white;
+    border-color: #28a745;
+}
+
+.button-success:hover {
+    background-color: #1e7e34;
+    border-color: #1e7e34;
+}
+
+.button-inline {
+    padding: 8px 12px;
+    font-size: 0.9em;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+}
+
+
+.change-password-section,
+.fridge-manage-options,
+.create-fridge-form,
+.invites-list-section {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+}
+
+.fridge-owner-info,
+.fridge-not-connected-section p {
+    font-style: italic;
+    color: #555;
+    margin-bottom: 15px;
+}
+
+.inline-form {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    margin-bottom: 15px;
+}
+
+.inline-form input[type="text"] {
+    flex-grow: 1;
+}
+
+
+.invites-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+.invite-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 10px;
+    border-bottom: 1px solid #e9ecef;
+    background-color: #fff;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+
+.invite-item:last-child {
+    border-bottom: none;
+}
+
+.invite-item span {
+    color: #333;
+}
+
+.invite-item strong {
+    color: #0056b3;
+}
+
+@media screen and (max-width: 600px) {
+    .account-settings-container {
+        padding: 15px;
+    }
+
+    .main-header {
+        font-size: 1.6em;
+    }
+
+    .section-title {
+        font-size: 1.3em;
+    }
+
+    .button-group {
+        flex-direction: column;
+    }
+
+    .button-group button {
+        width: 100%;
+    }
+
+    .inline-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .inline-form input[type="text"], .inline-form button {
+        width: 100%;
+    }
+
+    .invite-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .invite-item button {
+        width: 100%;
+    }
 }

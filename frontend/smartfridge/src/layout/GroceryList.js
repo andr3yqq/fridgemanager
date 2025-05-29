@@ -2,36 +2,9 @@ import React, {useCallback, useEffect, useState} from 'react';
 import {useAppContext} from "../context/AppContext";
 import defaultHeaders from "./defaultHeaders";
 import {addActivityLog} from "./ActivityLogs";
+import './GroceryList.css';
 
 const API_BASE_URL = 'http://localhost:8080/api/grocery';
-
-const Modal = ({isOpen, onClose, title, children}) => {
-    if (!isOpen) return null;
-
-    return (
-        <div style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
-            alignItems: 'center', justifyContent: 'center', zIndex: 1000
-        }}>
-            <div style={{
-                backgroundColor: 'white', padding: '20px', borderRadius: '8px',
-                minWidth: '300px', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto'
-            }}>
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                    <h3>{title}</h3>
-                    <button onClick={onClose} style={{
-                        background: 'none',
-                        border: 'none',
-                        fontSize: '1.5rem',
-                        cursor: 'pointer'
-                    }}>&times;</button>
-                </div>
-                {children}
-            </div>
-        </div>
-    );
-}
 
 function GroceryLists() {
     const [lists, setLists] = useState([]);
@@ -45,7 +18,7 @@ function GroceryLists() {
     const initialNewItemState = {
         name: '',
         description: '',
-        quantity: 0,
+        quantity: 1,
         category: '',
         purchased: false,
     };
@@ -81,6 +54,10 @@ function GroceryLists() {
             } finally {
                 setLoading(false);
             }
+        } else {
+            setLoading(false);
+            setError("Fridge not connected. Cannot load grocery lists.");
+            setLists([]);
         }
     }, [userData.fridgeId]);
 
@@ -112,6 +89,7 @@ function GroceryLists() {
             setNewListName('');
             setNewListDescription('');
             setSuccessMessage(`List "${createdList.name}" added successfully!`);
+            addActivityLog("CREATED", createdList.name, `${userData.username} created grocery list "${createdList.name}"`);
 
         } catch (e) {
             console.error("Error adding list:", e);
@@ -119,7 +97,7 @@ function GroceryLists() {
         }
     };
 
-    const handleDeleteList = async (listId) => {
+    const handleDeleteList = async (listId, listName) => {
         if (!window.confirm('Are you sure you want to delete this list? This cannot be undone.')) {
             return;
         }
@@ -139,6 +117,7 @@ function GroceryLists() {
                 setListItems([]);
             }
             setSuccessMessage('List deleted successfully.');
+            addActivityLog("DELETED", listName, `${userData.username} deleted grocery list "${listName}"`);
         } catch (e) {
             console.error("Error deleting list:", e);
             setError(`Failed to delete list: ${e.message}`);
@@ -172,17 +151,19 @@ function GroceryLists() {
             alert('Item name cannot be empty.');
             return;
         }
+        if (newItem.quantity <= 0) {
+            alert('Item quantity must be greater than 0.');
+            return;
+        }
         setError(null);
         setSuccessMessage('');
         const newItemDto = {
             name: newItem.name,
             description: newItem.description || null,
-            quantity: newItem.quantity || 0,
+            quantity: newItem.quantity || 1,
             category: newItem.category || null,
             purchased: newItem.purchased || false,
         };
-
-        console.log("Attempting to add item:", newItemDto, "to list:", listId);
 
         try {
             const response = await fetch(`${API_BASE_URL}/add/${listId}`, {
@@ -203,6 +184,7 @@ function GroceryLists() {
             if (viewingListId === listId) {
                 fetchListItems(listId);
             }
+            addActivityLog("ADDED_ITEM", addedItem.name, `${userData.username} added "${addedItem.name}" to a grocery list.`);
         } catch (e) {
             console.error("Error adding item:", e);
             setError(`Failed to add item: ${e.message}`);
@@ -280,6 +262,30 @@ function GroceryLists() {
             );
         }
     };
+
+    const handleDeleteItem = async (itemId, listId, itemName) => {
+        if (!window.confirm(`Are you sure you want to delete item "${itemName}"?`)) {
+            return;
+        }
+        setError(null);
+        setSuccessMessage('');
+        try {
+            const response = await fetch(`${API_BASE_URL}/items/${itemId}`, {
+                method: 'DELETE',
+                headers: defaultHeaders(),
+            });
+            if (!response.ok) {
+                throw new Error(`Failed to delete item: ${response.status}`);
+            }
+            setSuccessMessage(`Item "${itemName}" deleted successfully.`);
+            await fetchListItems(listId);
+            addActivityLog("DELETED_ITEM", itemName, `${userData.username} deleted item "${itemName}" from a grocery list.`);
+        } catch (e) {
+            console.error("Error deleting item:", e);
+            setError(`Failed to delete item: ${e.message}`);
+        }
+    };
+
 
     const openPriceExpiryModal = (listId) => {
         const purchasedItems = listItems.filter(item => item.purchased);
@@ -362,35 +368,24 @@ function GroceryLists() {
         }
     };
 
-
-    if (loading) {
-        return <div>Loading grocery lists...</div>;
+    if (loading && !(userData && userData.fridgeId && userData.fridgeId !== 0)) {
+        return <div className="gl-container"><p className="gl-info-message">Connect to a fridge to manage grocery
+            lists.</p></div>;
     }
-
+    if (loading) {
+        return <div className="gl-container"><p className="gl-loading">Loading grocery lists...</p></div>;
+    }
     return (
-        <div>
-            <h2>My Grocery Lists</h2>
+        <div className="gl-container">
+            <h2 className="gl-main-header">My Grocery Lists</h2>
 
-            {error && <div style={{
-                color: 'red',
-                marginBottom: '10px',
-                padding: '10px',
-                border: '1px solid red',
-                borderRadius: '4px'
-            }}>Error: {error}</div>}
-            {successMessage && <div style={{
-                color: 'green',
-                marginBottom: '10px',
-                padding: '10px',
-                border: '1px solid green',
-                borderRadius: '4px'
-            }}>{successMessage}</div>}
+            {error && <div className="gl-alert gl-alert-error">Error: {error}</div>}
+            {successMessage && <div className="gl-alert gl-alert-success">{successMessage}</div>}
 
-            <form onSubmit={handleAddList}
-                  style={{marginBottom: '20px', border: '1px solid #ccc', padding: '15px', borderRadius: '5px'}}>
-                <h3>Add New List</h3>
-                <div>
-                    <label htmlFor="listName">Name: </label>
+            <form onSubmit={handleAddList} className="gl-form gl-add-list-form">
+                <h2 className="gl-form-title">Add New Grocery List</h2>
+                <div className="gl-form-group">
+                    <label htmlFor="listName">List Name:</label>
                     <input
                         id="listName"
                         type="text"
@@ -398,244 +393,185 @@ function GroceryLists() {
                         onChange={(e) => setNewListName(e.target.value)}
                         placeholder="e.g., Weekly Groceries"
                         required
-                        style={{marginRight: '10px'}}
                     />
                 </div>
-                <div style={{marginTop: '10px'}}>
-                    <label htmlFor="listDesc">Description: </label>
+                <div className="gl-form-group">
+                    <label htmlFor="listDesc">Description (Optional):</label>
                     <input
                         id="listDesc"
                         type="text"
                         value={newListDescription}
                         onChange={(e) => setNewListDescription(e.target.value)}
-                        placeholder="Optional description"
-                        style={{marginRight: '10px'}}
+                        placeholder="e.g., For the first week of June"
                     />
                 </div>
-                <button type="submit" style={{marginTop: '10px'}}>Add List</button>
+                <button type="submit" className="gl-button gl-button-primary">Add List</button>
             </form>
 
-            {lists.length === 0 ? (
-                <p>No grocery lists found. Add one above!</p>
-            ) : (
-                <ul>
-                    {lists.map(list => (
-                        <li key={list.id}
-                            style={{marginBottom: '10px', padding: '5px', borderBottom: '1px solid #eee'}}>
-                            <div style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                marginBottom: addingToListId === list.id ? '10px' : '0'
-                            }}>
-                                <div>
-                                    <strong>{list.name}</strong>
-                                    {list.description &&
-                                        <span style={{marginLeft: '10px', color: '#555'}}> - {list.description}</span>}
+            {lists.length === 0 && !loading && (
+                <p className="gl-info-message">No grocery lists found. Add one above to get started!</p>
+            )}
+
+            <ul className="gl-list-group">
+                {lists.map(list => (
+                    <li key={list.id} className="gl-list-item">
+                        <div className="gl-list-item-header">
+                            <span className="gl-list-name">{list.name}</span>
+                            <span className="gl-list-description">{list.description}</span>
+                            <span
+                                className="gl-list-created">Created: {new Date(list.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <div className="gl-list-item-actions">
+                            <button onClick={() => handleToggleViewItems(list.id)}
+                                    className="gl-button gl-button-secondary">
+                                {viewingListId === list.id ? 'Hide Items' : 'View Items'}
+                            </button>
+                            <button onClick={() => handleToggleAddItemForm(list.id)}
+                                    className="gl-button gl-button-secondary">
+                                {addingToListId === list.id ? 'Cancel Add' : 'Add Item'}
+                            </button>
+                            <button onClick={() => handleDeleteList(list.id, list.name)}
+                                    className="gl-button gl-button-danger">
+                                Delete List
+                            </button>
+                        </div>
+
+                        {addingToListId === list.id && (
+                            <form onSubmit={(e) => handleAddItemSubmit(e, list.id)}
+                                  className="gl-form gl-add-item-form">
+                                <h3 className="gl-form-title">Add New Item to "{list.name}"</h3>
+                                <div className="gl-form-group">
+                                    <label htmlFor={`itemName-${list.id}`}>Item Name:</label>
+                                    <input id={`itemName-${list.id}`} type="text" name="name" value={newItem.name}
+                                           onChange={handleNewItemChange} placeholder="e.g., Milk" required/>
                                 </div>
-                                <div>
-                                    <button
-                                        onClick={() => handleToggleViewItems(list.id)}
-                                        style={{marginLeft: '10px', cursor: 'pointer'}}
-                                        aria-expanded={viewingListId === list.id}
-                                    >
-                                        {viewingListId === list.id ? 'Hide Items' : 'View Items'}
-                                    </button>
-                                    <button
-                                        onClick={() => handleToggleAddItemForm(list.id)}
-                                        style={{marginLeft: '15px', cursor: 'pointer'}}
-                                        aria-expanded={addingToListId === list.id}
-                                    >
-                                        {addingToListId === list.id ? 'Cancel Add' : 'Add Item'}
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeleteList(list.id)}
-                                        style={{
-                                            marginLeft: '10px',
-                                            color: 'red',
-                                            cursor: 'pointer',
-                                            background: 'none',
-                                            border: 'none',
-                                            padding: '0 5px'
-                                        }}
-                                        title="Delete list"
-                                    >
-                                        Delete List
-                                    </button>
+                                <div className="gl-form-group">
+                                    <label htmlFor={`itemDesc-${list.id}`}>Description (Optional):</label>
+                                    <input id={`itemDesc-${list.id}`} type="text" name="description"
+                                           value={newItem.description} onChange={handleNewItemChange}
+                                           placeholder="e.g., Organic, 1 gallon"/>
                                 </div>
-                            </div>
-                            {viewingListId === list.id && (
-                                <div style={{marginTop: '15px', paddingLeft: '20px'}}>
-                                    {itemsLoading && <p>Loading items...</p>}
-                                    {itemsError && <p style={{color: 'red'}}>{itemsError}</p>}
-                                    {!itemsLoading && !itemsError && listItems.length === 0 && (
-                                        <p>No items in this list yet.</p>
-                                    )}
-                                    {!itemsLoading && !itemsError && listItems.length > 0 && (
-                                        <>
-                                            <ul style={{listStyleType: 'none', paddingLeft: 0}}>
-                                                {listItems.map(item => (
-                                                    <li key={item.id} style={{
-                                                        padding: '8px',
-                                                        borderBottom: '1px solid #f0f0f0',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        textDecoration: item.purchased ? 'line-through' : 'none',
-                                                        color: item.purchased ? '#888' : 'inherit'
-                                                    }}>
+                                <div className="gl-form-group">
+                                    <label htmlFor={`itemQty-${list.id}`}>Quantity:</label>
+                                    <input id={`itemQty-${list.id}`} type="number" name="quantity"
+                                           value={newItem.quantity} onChange={handleNewItemChange} min="1" required/>
+                                </div>
+                                <div className="gl-form-group">
+                                    <label htmlFor={`itemCat-${list.id}`}>Category (Optional):</label>
+                                    <input id={`itemCat-${list.id}`} type="text" name="category"
+                                           value={newItem.category} onChange={handleNewItemChange}
+                                           placeholder="e.g., Dairy"/>
+                                </div>
+                                <button type="submit" className="gl-button gl-button-primary">Add Item</button>
+                                <button type="button" onClick={() => setAddingToListId(null)}
+                                        className="gl-button gl-button-secondary">Cancel
+                                </button>
+                            </form>
+                        )}
+
+                        {viewingListId === list.id && (
+                            <div className="gl-items-section">
+                                <h3 className="gl-items-title">Items in "{list.name}"</h3>
+                                {itemsLoading && <p className="gl-loading">Loading items...</p>}
+                                {itemsError && <div className="gl-alert gl-alert-error">Error: {itemsError}</div>}
+                                {!itemsLoading && !itemsError && listItems.length === 0 && (
+                                    <p className="gl-info-message">No items in this list yet.</p>
+                                )}
+                                {!itemsLoading && !itemsError && listItems.length > 0 && (
+                                    <>
+                                        <ul className="gl-item-group">
+                                            {listItems.map(item => (
+                                                <li key={item.id}
+                                                    className={`gl-item ${item.purchased ? 'gl-item-purchased' : ''}`}>
+                                                    <div className="gl-item-info">
                                                         <input
                                                             type="checkbox"
                                                             checked={item.purchased}
-                                                            onChange={() => handleToggleItemPurchased(item.id, item.purchased)}
-                                                            style={{marginRight: '10px', cursor: 'pointer'}}
+                                                            onChange={() => handleToggleItemPurchased(item.id, item.purchased, list.id)}
+                                                            id={`item-purchased-${item.id}`}
+                                                            className="gl-item-checkbox"
                                                         />
-                                                        <span>
-                                                        <strong>{item.name}</strong>
+                                                        <label htmlFor={`item-purchased-${item.id}`}
+                                                               className="gl-item-name">
+                                                            {item.name}
+                                                        </label>
+                                                        <span className="gl-item-details">
+                                                            (Qty: {item.quantity})
+                                                            {item.category && ` - ${item.category}`}
                                                             {item.description && ` - ${item.description}`}
-                                                            {item.quantity && ` (Qty: ${item.quantity})`}
-                                                            {item.category && ` [${item.category}]`}
-                                                    </span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                            {allItemsPurchasedInView && (
-                                                <button
-                                                    onClick={() => openPriceExpiryModal(list.id)}
-                                                    style={{
-                                                        marginTop: '15px',
-                                                        backgroundColor: '#28a745',
-                                                        color: 'white',
-                                                        padding: '8px 15px',
-                                                        border: 'none',
-                                                        borderRadius: '4px',
-                                                        cursor: 'pointer'
-                                                    }}
-                                                >
-                                                    Add All to Fridge
-                                                </button>
-                                            )}
-                                        </>
-                                    )}
-                                </div>
-                            )}
-                            {addingToListId === list.id && (
-                                <form onSubmit={(e) => handleAddItemSubmit(e, list.id)} style={{
-                                    marginTop: '10px',
-                                    padding: '10px',
-                                    border: '1px dashed #ccc',
-                                    borderRadius: '4px'
-                                }}>
-                                    <div style={{marginBottom: '5px'}}>
-                                        <label htmlFor={`itemName-${list.id}`}>Item Name: </label>
-                                        <input
-                                            id={`itemName-${list.id}`}
-                                            type="text"
-                                            name="name"
-                                            value={newItem.name}
-                                            onChange={handleNewItemChange}
-                                            placeholder="e.g., Milk"
-                                            required
-                                            style={{marginRight: '10px'}}
-                                        />
-                                    </div>
-                                    <div style={{marginBottom: '5px'}}>
-                                        <label htmlFor={`itemName-${list.id}`}>Item Description: </label>
-                                        <input
-                                            id={`itemDesc-${list.id}`}
-                                            type="text"
-                                            name="description"
-                                            value={newItem.description}
-                                            onChange={handleNewItemChange}
-                                            placeholder="e.g., Milk lidl 100ml"
-                                            style={{marginRight: '10px'}}
-                                        />
-                                    </div>
-                                    <div style={{marginBottom: '5px'}}>
-                                        <label htmlFor={`itemQty-${list.id}`}>Quantity: </label>
-                                        <input
-                                            id={`itemQty-${list.id}`}
-                                            type="text"
-                                            name="quantity"
-                                            value={newItem.quantity}
-                                            onChange={handleNewItemChange}
-                                            placeholder="e.g., 1 Gallon (Optional)"
-                                            style={{marginRight: '10px'}}
-                                        />
-                                    </div>
-                                    <div style={{marginBottom: '5px'}}>
-                                        <label htmlFor={`itemCat-${list.id}`}>Category: </label>
-                                        <input
-                                            id={`itemCat-${list.id}`}
-                                            type="text"
-                                            name="category"
-                                            value={newItem.category}
-                                            onChange={handleNewItemChange}
-                                            placeholder="e.g., Dairy (Optional)"
-                                            style={{marginRight: '10px'}}
-                                        />
-                                    </div>
-                                    <button type="submit">Save Item</button>
-                                    <button type="button" onClick={() => setAddingToListId(null)}
-                                            style={{marginLeft: '10px'}}>Cancel
-                                    </button>
-                                </form>
-                            )}
-
-                        </li>
-                    ))}
-                </ul>
-            )}
-            <Modal isOpen={isPriceExpiryModalOpen} onClose={() => setIsPriceExpiryModalOpen(false)}
-                   title="Enter Item Details for Fridge">
-                {error &&
-                    <div style={{color: 'red', marginBottom: '10px'}}>{error}</div>} {/* Error display inside modal */}
-                <form onSubmit={(e) => {
-                    e.preventDefault();
-                    handleSubmitFridgeDetails();
-                }}>
-                    {itemsForModal.map((item, index) => (
-                        <div key={item.groceryItemId}
-                             style={{marginBottom: '15px', paddingBottom: '10px', borderBottom: '1px solid #eee'}}>
-                            <strong>{item.name}</strong> (Qty: {item.quantity || 1})
-                            <div style={{marginTop: '5px'}}>
-                                <label htmlFor={`price-${item.groceryItemId}`}
-                                       style={{marginRight: '5px'}}>Price:</label>
-                                <input
-                                    type="number"
-                                    id={`price-${item.groceryItemId}`}
-                                    value={item.price}
-                                    onChange={(e) => handleModalItemChange(index, 'price', e.target.value)}
-                                    placeholder="e.g., 2.99"
-                                    step="0.01"
-                                    style={{width: '80px', marginRight: '10px'}}
-                                />
-                                <label htmlFor={`expiry-${item.groceryItemId}`} style={{marginRight: '5px'}}>Expiry
-                                    Date:</label>
-                                <input
-                                    type="date"
-                                    id={`expiry-${item.groceryItemId}`}
-                                    value={item.expirationDate}
-                                    onChange={(e) => handleModalItemChange(index, 'expirationDate', e.target.value)}
-                                    style={{width: '150px'}}
-                                />
+                                                        </span>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleDeleteItem(item.id, list.id, item.name)}
+                                                        className="gl-button gl-button-danger gl-button-small"
+                                                        title="Delete Item"
+                                                    >
+                                                        &times;
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        {allItemsPurchasedInView && (
+                                            <button onClick={() => openPriceExpiryModal(list.id)}
+                                                    className="gl-button gl-button-success gl-move-fridge-btn">
+                                                Move Purchased to Fridge
+                                            </button>
+                                        )}
+                                    </>
+                                )}
                             </div>
+                        )}
+                    </li>
+                ))}
+            </ul>
+
+            {isPriceExpiryModalOpen && (
+                <div className="gl-modal-overlay">
+                    <div className="gl-modal">
+                        <h2 className="gl-modal-title">Add Details for Fridge Items</h2>
+                        <p className="gl-modal-instructions">Enter price and expiration for items being moved to the
+                            fridge. Leave blank if not applicable.</p>
+                        {itemsForModal.map((item, index) => (
+                            <div key={index} className="gl-modal-item-form">
+                                <h4 className="gl-modal-item-name">{item.name} (Qty: {item.quantity},
+                                    Cat: {item.category || 'N/A'})</h4>
+                                <div className="gl-form-group">
+                                    <label htmlFor={`price-${index}`}>Price (per unit or total):</label>
+                                    <input
+                                        id={`price-${index}`}
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={item.price}
+                                        onChange={(e) => handleModalItemChange(index, 'price', e.target.value)}
+                                        placeholder="e.g., 2.99"
+                                    />
+                                </div>
+                                <div className="gl-form-group">
+                                    <label htmlFor={`expiry-${index}`}>Expiration Date:</label>
+                                    <input
+                                        id={`expiry-${index}`}
+                                        type="date"
+                                        value={item.expirationDate}
+                                        onChange={(e) => handleModalItemChange(index, 'expirationDate', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                        <div className="gl-modal-actions">
+                            <button onClick={handleSubmitFridgeDetails} className="gl-button gl-button-primary">Submit
+                                to Fridge
+                            </button>
+                            <button onClick={() => setIsPriceExpiryModalOpen(false)}
+                                    className="gl-button gl-button-secondary">Cancel
+                            </button>
                         </div>
-                    ))}
-                    <button type="submit" style={{
-                        marginTop: '10px',
-                        padding: '10px 15px',
-                        backgroundColor: '#007bff',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                    }}>
-                        Confirm & Add to Fridge
-                    </button>
-                </form>
-            </Modal>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+
 
 export default GroceryLists;
