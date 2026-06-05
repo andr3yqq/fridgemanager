@@ -24,6 +24,20 @@ export default defineConfig({
   server: {
     port: 3000,
   },
+  optimizeDeps: {
+    rolldownOptions: {
+      moduleTypes: {
+        '.js': 'jsx',
+      },
+    },
+  },
+  build: {
+    rolldownOptions: {
+      moduleTypes: {
+        '.js': 'jsx',
+      },
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',
