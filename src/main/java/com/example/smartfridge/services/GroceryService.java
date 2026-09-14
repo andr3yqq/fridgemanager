@@ -52,7 +52,7 @@ public class GroceryService {
         User user = userRepository.findUserByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        return fridgeMapper.toFridgeDto(user.getFridgeId());
+        return fridgeMapper.toFridgeDto(user.getFridge());
     }
 
     public List<GroceryListDto> allLists() {
@@ -83,11 +83,11 @@ public class GroceryService {
 
     public GroceryListDto createList(String groceryListName, String description) {
         User user = getCurrentUser();
-        if (user.getFridgeId().getId() != 0) {
+        if (user.getFridge().getId() != 0) {
             GroceryList groceryList = new GroceryList();
             groceryList.setName(groceryListName);
             groceryList.setDescription(description);
-            groceryList.setFridge(user.getFridgeId());
+            groceryList.setFridge(user.getFridge());
             groceryList.setUser(user);
             groceryListRepository.save(groceryList);
             return groceryListMapper.toGroceryListDto(groceryList);
@@ -108,7 +108,7 @@ public class GroceryService {
 
     public GroceryListDto deleteList(Long id) {
         User user = getCurrentUser();
-        User fridgeOwner = userRepository.findById(user.getFridgeId().getId()).orElse(null);
+        User fridgeOwner = userRepository.findById(user.getFridge().getId()).orElse(null);
         GroceryList groceryList = groceryListRepository.findById(id).orElse(null);
         if (groceryList != null && (groceryList.getUser().getId().equals(user.getId())
                 || groceryList.getUser().getId().equals(fridgeOwner.getId()))) {
@@ -122,7 +122,7 @@ public class GroceryService {
         GroceryItem groceryItem = groceryItemMapper.toGroceryItem(groceryItemDto);
         User user = getCurrentUser();
         GroceryList groceryList = groceryListRepository.findById(listId).orElse(null);
-        if (groceryList != null && Objects.equals(user.getFridgeId().getId(), groceryList.getFridge().getId())) {
+        if (groceryList != null && Objects.equals(user.getFridge().getId(), groceryList.getFridge().getId())) {
             groceryItem.setGroceryList(groceryList);
             groceryItemRepository.save(groceryItem);
             return groceryItemMapper.toGroceryItemDto(groceryItem);
@@ -133,7 +133,7 @@ public class GroceryService {
     public GroceryItemDto deleteItem(Long id) {
         GroceryItem groceryItem = groceryItemRepository.findById(id).orElse(null);
         User user = getCurrentUser();
-        User fridgeOwner = userRepository.findById(user.getFridgeId().getId()).orElse(null);
+        User fridgeOwner = userRepository.findById(user.getFridge().getId()).orElse(null);
         if (groceryItem != null && (groceryItem.getGroceryList().getUser().getId().equals(user.getId())
                 || groceryItem.getGroceryList().getUser().getId().equals(fridgeOwner.getId()))) {
             groceryItemRepository.delete(groceryItem);
@@ -144,7 +144,7 @@ public class GroceryService {
 
     public GroceryItemDto updateItem(GroceryItemDto groceryItemDto) {
         User user = getCurrentUser();
-        User fridgeOwner = userRepository.findById(user.getFridgeId().getId()).orElse(null);
+        User fridgeOwner = userRepository.findById(user.getFridge().getId()).orElse(null);
         GroceryItem groceryItem = groceryItemRepository.findById(groceryItemDto.getId()).orElse(null);
         if (groceryItem != null && (groceryItem.getGroceryList().getUser().getId().equals(user.getId())
                 || groceryItem.getGroceryList().getUser().getId().equals(fridgeOwner.getId()))) {
@@ -161,7 +161,7 @@ public class GroceryService {
                 .orElseThrow(() -> new RuntimeException("Grocery item not found with id: " + itemId));
 
         if (groceryItem.getGroceryList() == null ||
-                !Objects.equals(groceryItem.getGroceryList().getFridge().getId(), user.getFridgeId().getId())) {
+                !Objects.equals(groceryItem.getGroceryList().getFridge().getId(), user.getFridge().getId())) {
             throw new SecurityException("User does not have permission to modify this item.");
         }
 
@@ -176,7 +176,7 @@ public class GroceryService {
         GroceryList groceryList = groceryListRepository.findById(listId)
                 .orElseThrow(() -> new RuntimeException("Grocery list not found with id: " + listId));
 
-        if (!Objects.equals(groceryList.getFridge().getId(), user.getFridgeId().getId())) {
+        if (!Objects.equals(groceryList.getFridge().getId(), user.getFridge().getId())) {
             throw new SecurityException("User does not have permission to modify this list.");
         }
 

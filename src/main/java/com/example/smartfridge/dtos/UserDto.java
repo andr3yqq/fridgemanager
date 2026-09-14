@@ -17,4 +17,10 @@ public class UserDto {
     private String password;
     private String role;
     private Long fridgeId;
+
+    public UserDto(String username, String password, String email) {
+        this.username = username;
+        this.password = password;
+        this.email = email;
+    }
 }

@@ -44,7 +44,7 @@ public class LogsService {
     public UserLogRecordDto createItem(UserLogRecordDto userLogRecordDto) {
         User user = checkCurrentUser();
         UserLogRecord userLogRecord = userLogMapper.toUserLogRecord(userLogRecordDto);
-        Fridge fridge = fridgeRepository.findById(user.getFridgeId().getId()).orElse(null);
+        Fridge fridge = fridgeRepository.findById(user.getFridge().getId()).orElse(null);
         userLogRecord.setUser(user);
         userLogRecord.setFridgeId(fridge);
         userLogsRepository.save(userLogRecord);
@@ -53,7 +53,7 @@ public class LogsService {
 
     public List<UserLogRecordDto> getLogsByFridge() {
         User user = checkCurrentUser();
-        Fridge fridge = fridgeRepository.findById(user.getFridgeId().getId()).orElse(null);
+        Fridge fridge = fridgeRepository.findById(user.getFridge().getId()).orElse(null);
         List<UserLogRecord> userLogs = userLogsRepository.findAllByFridgeId(fridge);
         userLogs.sort((a, b) -> b.getTimestamp().compareTo(a.getTimestamp()));
         if (fridge != null) {

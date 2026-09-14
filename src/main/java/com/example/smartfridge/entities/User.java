@@ -22,17 +22,17 @@ public class User implements UserDetails {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     @Column(name = "user_id")
     private Long id;
-    @Column
+    @Column(unique = true)
     private String username;
-    @Column
+    @Column(unique = true)
     private String email;
-    @Column
+
     private String password;
-    @Column
+
     private String role;
     @ManyToOne
     @JoinColumn(name = "fridge_id")
-    private Fridge fridgeId;
+    private Fridge fridge;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

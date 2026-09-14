@@ -1,95 +1,73 @@
 package com.example.smartfridge.services;
 
 import com.example.smartfridge.dtos.UserDto;
-import com.example.smartfridge.entities.Fridge;
 import com.example.smartfridge.entities.User;
+import com.example.smartfridge.exceptions.UserAlreadyExistsException;
 import com.example.smartfridge.mappers.UserMapper;
-import com.example.smartfridge.repositories.FridgeRepository;
 import com.example.smartfridge.repositories.UserRepository;
+import com.example.smartfridge.utils.UserUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class AuthenticationService implements UserDetailsService {
 
     private final UserRepository userRepository;
+    private final UserUtils userUtils;
     private final UserMapper userMapper;
-    private final FridgeRepository fridgeRepository;
-
-    public UserDto findUserByEmail(String email) {
-        User user = userRepository.findUserByEmail(email).orElse(null);
-        return userMapper.toUserDto(user);
-    }
-
-    public UserDto findUserByUsername(String username) {
-        User user = userRepository.findUserByUsername(username).orElse(null);
-        return userMapper.toUserDto(user);
-    }
-
-    public UserDto findUserById(Long id) {
-        User user = userRepository.findById(id).orElse(null);
-        return userMapper.toUserDto(user);
-    }
+    private final PasswordEncoder passwordEncoder;
 
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         return userRepository.findUserByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
 
-    public User authenticate(String username, String rawPassword, PasswordEncoder passwordEncoder) {
+    public User authenticate(String username, String rawPassword) {
         User user = userRepository.findUserByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
-            throw new UsernameNotFoundException("Invalid credentials");
+            throw new BadCredentialsException("Invalid credentials");
         }
 
         return user;
     }
 
-    public User changePassword(String oldPassword, String newPassword, PasswordEncoder passwordEncoder) {
-        User user = tokenCheck();
+    @Transactional
+    public User changePassword(String oldPassword, String newPassword) {
+        User user = userUtils.getUserFromAuthentication();
         if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
-            throw new UsernameNotFoundException("Invalid credentials");
+            throw new BadCredentialsException("Invalid credentials");
         }
         user.setPassword(passwordEncoder.encode(newPassword));
         return userRepository.save(user);
     }
 
-    public User tokenCheck() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName();
-
-        return userRepository.findUserByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-    }
-
-    public User registerUser(UserDto userDto, PasswordEncoder passwordEncoder) {
-        if (userRepository.findUserByUsername(userDto.getUsername()).isPresent()) {
-            throw new IllegalArgumentException("Username is already taken.");
+    @Transactional
+    public User registerUser(UserDto userDto) {
+        if (userRepository.existsByUsername(userDto.getUsername())) {
+            throw new UserAlreadyExistsException("Username is already taken.");
         }
-        if (userRepository.findUserByEmail(userDto.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("Email is already taken.");
+        if (userRepository.existsByEmail(userDto.getEmail())) {
+            throw new UserAlreadyExistsException("Email is already taken.");
         }
 
-        Fridge fridge = fridgeRepository.findById(0L).orElse(null);
-        User newUser = new User(
-                null,
-                userDto.getUsername(),
-                userDto.getEmail(),
-                passwordEncoder.encode(userDto.getPassword()),
-                userDto.getRole(),
-                fridge
-        );
+        User newUser = userMapper.toUser(userDto);
+        newUser.setPassword(passwordEncoder.encode(userDto.getPassword()));
 
-        return userRepository.save(newUser);
+        try {
+            return userRepository.save(newUser);
+        } catch (DataIntegrityViolationException e) {
+            throw new UserAlreadyExistsException("Username or email is already taken.");
+        }
     }
 
 }

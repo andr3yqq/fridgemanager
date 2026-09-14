@@ -13,14 +13,16 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface UserMapper {
 
-    @Mapping(source = "fridgeId.id", target = "fridgeId")
+    @Mapping(source = "fridge.id", target = "fridgeId")
     UserDto toUserDto(User user);
-    @Mapping(source = "fridgeId", target = "fridgeId", qualifiedByName = "fridgeIdToFridge")
+
+    @Mapping(source = "fridgeId", target = "fridge", qualifiedByName = "fridgeIdToFridge")
     User toUser(UserDto userDto);
-    @Mapping(source = "fridgeId", target = "fridgeId", qualifiedByName = "fridgeIdToFridge")
+
+    @Mapping(source = "fridgeId", target = "fridge", qualifiedByName = "fridgeIdToFridge")
     User updateEntityFromDto(UserDto userDto, @MappingTarget User user);
 
-    @Mapping(source = "fridgeId", target = "fridgeId", qualifiedByName = "fridgeIdToFridge")
+    @Mapping(source = "fridge", target = "fridgeId", qualifiedByName = "fridgeIdToFridge")
     List<UserDto> toUserDtoList(List<User> users);
 
     @Named("fridgeIdToFridge")

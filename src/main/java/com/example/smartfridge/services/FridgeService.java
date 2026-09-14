@@ -7,6 +7,7 @@ import com.example.smartfridge.dtos.UserDto;
 import com.example.smartfridge.entities.Fridge;
 import com.example.smartfridge.entities.FridgeInvites;
 import com.example.smartfridge.entities.ItemRecord;
+import com.example.smartfridge.entities.User;
 import com.example.smartfridge.mappers.FridgeInvitesMapper;
 import com.example.smartfridge.mappers.FridgeMapper;
 import com.example.smartfridge.mappers.ItemMapper;
@@ -15,10 +16,8 @@ import com.example.smartfridge.repositories.FridgeInvitesRepository;
 import com.example.smartfridge.repositories.FridgeRepository;
 import com.example.smartfridge.repositories.ItemRepository;
 import com.example.smartfridge.repositories.UserRepository;
+import com.example.smartfridge.utils.UserUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import com.example.smartfridge.entities.User;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -35,27 +34,15 @@ public class FridgeService {
     private final FridgeRepository fridgeRepository;
     private final FridgeInvitesRepository fridgeInvitesRepository;
     private final UserMapper userMapper;
+    private final UserUtils userUtils;
 
     public List<ItemRecordDto> allItems() {
         return itemMapper.toItemRecordDtoList(itemRepository.findAll());
     }
 
     public FridgeDto checkCurrentUserFridge() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName();
-
-        User user = userRepository.findUserByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        return fridgeMapper.toFridgeDto(user.getFridgeId());
-    }
-
-    public User getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName();
-
-        return userRepository.findUserByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userUtils.getUserFromAuthentication();
+        return fridgeMapper.toFridgeDto(user.getFridge());
     }
 
     public List<ItemRecordDto> allItemsByFridge() {
@@ -101,15 +88,15 @@ public class FridgeService {
 
     public FridgeDto createFridge(String fridgeName)
     {
-        User user = getCurrentUser();
+        User user = userUtils.getUserFromAuthentication();
 
-        if (user.getFridgeId().getId() == 0)
+        if (user.getFridge().getId() == 0)
         {
             Fridge fridge = new Fridge();
             fridge.setName(fridgeName);
             fridge.setOwner(user);
             fridgeRepository.save(fridge);
-            user.setFridgeId(fridge);
+            user.setFridge(fridge);
             userRepository.save(user);
             return fridgeMapper.toFridgeDto(fridge);
         }
@@ -119,9 +106,9 @@ public class FridgeService {
     public FridgeDto deleteFridge() {
         Fridge fridge = fridgeMapper.toFridge(checkCurrentUserFridge());
         Fridge basicFridge = fridgeRepository.findById(0L).orElse(null);
-        User user = getCurrentUser();
+        User user = userUtils.getUserFromAuthentication();
         if (fridge != null && user.getId().equals(fridge.getOwner().getId())) {
-            user.setFridgeId(basicFridge);
+            user.setFridge(basicFridge);
             fridgeRepository.delete(fridge);
             userRepository.save(user);
             return fridgeMapper.toFridgeDto(fridge);
@@ -131,13 +118,13 @@ public class FridgeService {
 
     public FridgeInvitesDto inviteUser(String username) {
         System.out.println(username);
-        User currentUser = getCurrentUser();
+        User currentUser = userUtils.getUserFromAuthentication();
         User invitedUser = userRepository.findUserByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        if (currentUser.getFridgeId().getId() != 0 && invitedUser.getFridgeId().getId() == 0)
+        if (currentUser.getFridge().getId() != 0 && invitedUser.getFridge().getId() == 0)
         {
             FridgeInvites invite = new FridgeInvites();
-            invite.setFridgeId(currentUser.getFridgeId());
+            invite.setFridgeId(currentUser.getFridge());
             invite.setUser(currentUser);
             invite.setInvitedUser(invitedUser);
             invite.setStatus("invited");
@@ -148,18 +135,18 @@ public class FridgeService {
     }
 
     public List<FridgeInvitesDto> getInvitesForUser() {
-        User currentUser = getCurrentUser();
+        User currentUser = userUtils.getUserFromAuthentication();
         return fridgeInvitesMapper.toDtoList(fridgeInvitesRepository.findAllByInvitedUser(currentUser)
                 .stream().filter(e -> e.getStatus().equals("invited")).collect(Collectors.toList()));
     }
 
     public UserDto leaveFridge() {
-        User user = getCurrentUser();
-        if (user.getFridgeId().getId() != 0) {
-            Fridge fridge = fridgeRepository.findById(user.getFridgeId().getId()).orElse(null);
+        User user = userUtils.getUserFromAuthentication();
+        if (user.getFridge().getId() != 0) {
+            Fridge fridge = fridgeRepository.findById(user.getFridge().getId()).orElse(null);
             Fridge basicFridge = fridgeRepository.findById(0L).orElse(null);
             if (fridge != null && !fridge.getOwner().getId().equals(user.getId())) {
-                user.setFridgeId(basicFridge);
+                user.setFridge(basicFridge);
                 userRepository.save(user);
                 return userMapper.toUserDto(user);
             }
@@ -169,12 +156,12 @@ public class FridgeService {
     }
 
     public UserDto joinFridge(Long inviteId) {
-        User user = getCurrentUser();
+        User user = userUtils.getUserFromAuthentication();
         FridgeInvites invite = fridgeInvitesRepository.findById(inviteId).orElse(null);
-        if (invite != null && user.getFridgeId().getId() == 0) {
+        if (invite != null && user.getFridge().getId() == 0) {
             Fridge newFridge = fridgeRepository.findById(invite.getFridgeId().getId())
                     .orElseThrow(() -> new RuntimeException("Fridge not found"));
-            user.setFridgeId(newFridge);
+            user.setFridge(newFridge);
             invite.setStatus("accepted");
             fridgeInvitesRepository.save(invite);
             userRepository.save(user);
