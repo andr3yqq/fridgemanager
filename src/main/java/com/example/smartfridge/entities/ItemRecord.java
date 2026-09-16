@@ -35,5 +35,5 @@ public class ItemRecord {
     private LocalDate buyingDate;
     @ManyToOne
     @JoinColumn(name = "fridge_id")
-    private Fridge fridgeId;
+    private Fridge fridge;
 }

@@ -8,7 +8,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -26,7 +25,7 @@ public class FridgeController {
 
     @GetMapping("/fridge")
     public ResponseEntity<FridgeDto> allFridgeInfo() {
-        return ResponseEntity.ok(fridgeService.checkCurrentUserFridge());
+        return ResponseEntity.ok(fridgeService.getCurrentUserFridgeDto());
     }
 
     @PostMapping("/fridge")
@@ -36,49 +35,34 @@ public class FridgeController {
     }
 
     @DeleteMapping("/fridge")
-    public ResponseEntity<FridgeDto> deleteFridge() {
-        FridgeDto deletedFridge = fridgeService.deleteFridge();
-        return ResponseEntity.ok(deletedFridge);
+    public ResponseEntity<Void> deleteFridge() {
+        fridgeService.deleteFridge();
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/invites")
     public ResponseEntity<List<InvitesResponseDto>> getInvitesForUser() {
-        List<FridgeInvitesDto> invites = fridgeService.getInvitesForUser();
-
-        List<InvitesResponseDto> invitesDto = new ArrayList<>();
-        invites.forEach(invite -> {
-            invitesDto.add(new InvitesResponseDto(invite.getId(),fridgeService.getInviteUsername(invite.getId()),fridgeService.getInviteFridgeName(invite.getId())));
-        });
-        return ResponseEntity.ok(invitesDto);
+        return ResponseEntity.ok(fridgeService.getInvitesForUser());
     }
 
     @PostMapping("/invite")
     public ResponseEntity<FridgeInvitesDto> inviteUser(@RequestBody String username) {
-        FridgeInvitesDto invite = fridgeService.inviteUser(username);
-        System.out.println(invite);
-        return ResponseEntity.ok(invite);
+        return ResponseEntity.ok(fridgeService.inviteUser(username));
     }
 
     @PostMapping("/fridge/join")
     public ResponseEntity<UserDto> joinFridge(@RequestBody Long inviteId) {
-        UserDto user = fridgeService.joinFridge(inviteId);
-        return ResponseEntity.ok(user);
+        return ResponseEntity.ok(fridgeService.joinFridge(inviteId));
     }
 
     @PostMapping("/fridge/leave")
     public ResponseEntity<UserDto> leaveFridge() {
-        UserDto user = fridgeService.leaveFridge();
-        return ResponseEntity.ok(user);
+        return ResponseEntity.ok(fridgeService.leaveFridge());
     }
-
-    /*public ResponseEntity<List<ItemRecordDto>> allItems() {
-        return ResponseEntity.ok(fridgeService.allItems());
-    }*/
 
     @GetMapping("/items/{id}")
     public ResponseEntity<ItemRecordDto> getItem(@PathVariable long id) {
-        ItemRecordDto itemRecordDto = fridgeService.getItemById(id);
-        return ResponseEntity.ok(itemRecordDto);
+        return ResponseEntity.ok(fridgeService.getItemById(id));
     }
 
     @PostMapping("/items")
@@ -94,7 +78,6 @@ public class FridgeController {
 
     @DeleteMapping("/items/{id}")
     public ResponseEntity<ItemRecordDto> deleteItem(@PathVariable long id) {
-        ItemRecordDto deletedItem = fridgeService.deleteItem(id);
-        return ResponseEntity.ok(deletedItem);
+        return ResponseEntity.ok(fridgeService.deleteItem(id));
     }
 }

@@ -9,5 +9,5 @@ import java.util.List;
 
 @Repository
 public interface ItemRepository extends JpaRepository<ItemRecord, Long> {
-    List<ItemRecord> findAllByFridgeId(Fridge fridgeId);
+    List<ItemRecord> findAllByFridge(Fridge fridge);
 }
