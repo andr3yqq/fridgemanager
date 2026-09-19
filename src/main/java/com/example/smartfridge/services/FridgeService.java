@@ -37,23 +37,14 @@ public class FridgeService {
     private final UserMapper userMapper;
     private final UserUtils userUtils;
 
-    public Fridge getCurrentUserFridge() {
-        User user = userUtils.getUserFromAuthentication();
-        Fridge fridge = user.getFridge();
-        if (fridge == null) {
-            throw new UserDoesNotHaveAFridgeException("User does not have a fridge");
-        }
-        return fridge;
-    }
-
     @Transactional(readOnly = true)
     public FridgeDto getCurrentUserFridgeDto() {
-        return fridgeMapper.toFridgeDto(getCurrentUserFridge());
+        return fridgeMapper.toFridgeDto(userUtils.getCurrentUserFridge());
     }
 
     @Transactional(readOnly = true)
     public List<ItemRecordDto> allItemsByFridge() {
-        return itemMapper.toItemRecordDtoList(itemRepository.findAllByFridge(getCurrentUserFridge()));
+        return itemMapper.toItemRecordDtoList(itemRepository.findAllByFridge(userUtils.getCurrentUserFridge()));
     }
 
     @Transactional(readOnly = true)
@@ -65,7 +56,7 @@ public class FridgeService {
     public ItemRecordDto createItem(ItemRecordDto itemRecordDto) {
         itemRecordDto.setId(null);
         ItemRecord itemRecord = itemMapper.toItemRecord(itemRecordDto);
-        Fridge fridge = getCurrentUserFridge();
+        Fridge fridge = userUtils.getCurrentUserFridge();
         itemRecord.setFridge(fridge);
         itemRepository.save(itemRecord);
         return itemMapper.toItemRecordDto(itemRecord);
@@ -114,9 +105,9 @@ public class FridgeService {
     @Transactional
     public void deleteFridge() {
         User user = userUtils.getUserFromAuthentication();
-        Fridge fridge = getCurrentUserFridge();
+        Fridge fridge = userUtils.getCurrentUserFridge();
         if (!user.getId().equals(fridge.getOwner().getId())) {
-            throw new UserIsNotOwnerOfThisFridgeException("User is not the owner of the fridge");
+            throw new UserIsNotOwnerOfFridgeException("User is not the owner of the fridge");
         }
         List<User> members = fridge.getUsers();
         members.forEach(member -> member.setFridge(null));
@@ -134,7 +125,7 @@ public class FridgeService {
             throw new InviteConflictException("User cannot invite themselves");
         }
         if (currentUser.getFridge() == null) {
-            throw new UserDoesNotHaveAFridgeException("User does not have a fridge");
+            throw new UserDoesNotHaveFridgeException("User does not have a fridge");
         }
         if (invitedUser.getFridge() != null) {
             throw new UserAlreadyHasFridgeException("User already has a fridge");
@@ -165,7 +156,7 @@ public class FridgeService {
     @Transactional
     public UserDto leaveFridge() {
         User user = userUtils.getUserFromAuthentication();
-        Fridge fridge = getCurrentUserFridge();
+        Fridge fridge = userUtils.getCurrentUserFridge();
         if (fridge.getOwner().getId().equals(user.getId())) {
             throw new UserIsOwnerOfThisFridgeException("User is the owner of the fridge");
         }
@@ -197,7 +188,7 @@ public class FridgeService {
     }
 
     public ItemRecord getItemRecordById(Long itemId) {
-        Long fridgeId = getCurrentUserFridge().getId();
+        Long fridgeId = userUtils.getCurrentUserFridge().getId();
         ItemRecord itemRecord = itemRepository.findById(itemId).orElseThrow(() -> new ItemNotFoundException("Item not found"));
         if (!fridgeId.equals(itemRecord.getFridge().getId())) {
             throw new ItemNotFoundException("Item not found");

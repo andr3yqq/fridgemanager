@@ -14,7 +14,8 @@ public class GlobalExceptionHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    @ExceptionHandler({UsernameNotFoundException.class, FridgeNotFoundException.class, ItemNotFoundException.class, UserDoesNotHaveAFridgeException.class})
+    @ExceptionHandler({UsernameNotFoundException.class, FridgeNotFoundException.class, ItemNotFoundException.class, UserDoesNotHaveFridgeException.class,
+            GroceryItemNotFoundException.class, GroceryListNotFoundException.class})
     public ProblemDetail handleNotFoundException(RuntimeException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
     }
@@ -30,7 +31,8 @@ public class GlobalExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 
-    @ExceptionHandler({InviteNotOwnedException.class, UserIsNotOwnerOfThisFridgeException.class, UserIsOwnerOfThisFridgeException.class})
+    @ExceptionHandler({InviteNotOwnedException.class, UserIsNotOwnerOfFridgeException.class, UserIsOwnerOfThisFridgeException.class,
+            UserDoesNotHaveAccessToFridgeException.class, UserIsNotOwnerOfGroceryListException.class})
     public ProblemDetail handleForbiddenException(RuntimeException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
     }

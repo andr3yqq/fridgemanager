@@ -5,8 +5,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ResponseStatus(HttpStatus.CONFLICT)
-public class UserDoesNotHaveAFridgeException extends RuntimeException {
-    public UserDoesNotHaveAFridgeException(String message) {
+public class UserDoesNotHaveFridgeException extends RuntimeException {
+    public UserDoesNotHaveFridgeException(String message) {
         super(message);
     }
 }
