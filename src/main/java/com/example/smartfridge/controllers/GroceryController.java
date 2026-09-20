@@ -1,11 +1,11 @@
 package com.example.smartfridge.controllers;
 
 import com.example.smartfridge.dtos.GroceryItemDto;
+import com.example.smartfridge.dtos.GroceryListCreateDto;
 import com.example.smartfridge.dtos.GroceryListDto;
 import com.example.smartfridge.dtos.ItemRecordDto;
 import com.example.smartfridge.services.GroceryService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,7 +14,6 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:3000")
 @RequestMapping("/api/grocery")
 public class GroceryController {
 
@@ -31,46 +30,43 @@ public class GroceryController {
         return ResponseEntity.ok(list);
     }
 
-    @PostMapping("/{name}")
-    public ResponseEntity<GroceryListDto> createList(@PathVariable String name, @RequestBody String description) {
-        GroceryListDto createdList = groceryService.createList(name, description);
-        return ResponseEntity.created(URI.create(createdList.getId().toString())).body(createdList);
+    @PostMapping
+    public ResponseEntity<GroceryListDto> createList(@RequestBody GroceryListCreateDto dto) {
+        GroceryListDto createdList = groceryService.createList(dto.getName(), dto.getDescription());
+        return ResponseEntity.created(URI.create("/api/grocery/" + createdList.getId().toString())).body(createdList);
     }
 
     @DeleteMapping("/{listId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> deleteList(@PathVariable Long listId) {
         groceryService.deleteList(listId);
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{id}/items")
-    public ResponseEntity<List<GroceryItemDto>> getItemsByListId(@PathVariable Long id) {
-        List<GroceryItemDto> items = groceryService.getItemsByListId(id);
+    @GetMapping("/{listId}/items")
+    public ResponseEntity<List<GroceryItemDto>> getItemsByListId(@PathVariable Long listId) {
+        List<GroceryItemDto> items = groceryService.getItemsByListId(listId);
         return ResponseEntity.ok(items);
     }
 
-    @PostMapping("/add/{id}")
-    public ResponseEntity<GroceryItemDto> addItemToList(@RequestBody GroceryItemDto groceryItemDto, @PathVariable Long id) {
-        return ResponseEntity.ok(groceryService.addItemToList(groceryItemDto, id));
+    @PostMapping("/{listId}/items")
+    public ResponseEntity<GroceryItemDto> addItemToList(@RequestBody GroceryItemDto groceryItemDto, @PathVariable Long listId) {
+        return ResponseEntity.ok(groceryService.addItemToList(groceryItemDto, listId));
     }
 
-    @DeleteMapping("/items/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @DeleteMapping("/{listId}/items/{id}")
     public ResponseEntity<Void> deleteItemFromList(@PathVariable Long id) {
         groceryService.deleteItem(id);
         return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{listId}")
-    public ResponseEntity<GroceryListDto> updateList(@RequestBody GroceryListDto groceryListDto) {
-        return ResponseEntity.ok(groceryService.updateList(groceryListDto.getId(), groceryListDto.getName(), groceryListDto.getDescription()));
+    public ResponseEntity<GroceryListDto> updateList(@RequestBody GroceryListDto groceryListDto, @PathVariable Long listId) {
+        return ResponseEntity.ok(groceryService.updateList(listId, groceryListDto.getName(), groceryListDto.getDescription()));
     }
 
     @PutMapping("/items/{id}")
-    public ResponseEntity<Void> updateItem(@RequestBody GroceryItemDto groceryItemDto) {
-        groceryService.updateItem(groceryItemDto);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<GroceryItemDto> updateItem(@PathVariable Long id, @RequestBody GroceryItemDto groceryItemDto) {
+        return ResponseEntity.ok(groceryService.updateItem(id, groceryItemDto));
     }
 
     @PatchMapping("/items/{itemId}/purchase")

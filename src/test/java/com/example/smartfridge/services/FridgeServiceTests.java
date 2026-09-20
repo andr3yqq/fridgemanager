@@ -111,7 +111,7 @@ class FridgeServiceTests {
 
     @Test
     void getItemByIdReturnsItemFromCurrentFridge() {
-        ItemRecord item = item(30L, fridge);
+        ItemRecord item = item(fridge);
         ItemRecordDto expected = new ItemRecordDto();
         givenCurrentFridgeAndItem(item);
         when(itemMapper.toItemRecordDto(item)).thenReturn(expected);
@@ -123,7 +123,7 @@ class FridgeServiceTests {
     void getItemByIdThrowsWhenItemBelongsToAnotherFridge() {
         Fridge otherFridge = new Fridge();
         otherFridge.setId(11L);
-        ItemRecord item = item(30L, otherFridge);
+        ItemRecord item = item(otherFridge);
         givenCurrentFridgeAndItem(item);
 
         assertThrows(ItemNotFoundException.class, () -> fridgeService.getItemById(item.getId()));
@@ -148,14 +148,14 @@ class FridgeServiceTests {
 
     @Test
     void updateItemCopiesEditableFieldsAndSavesItem() {
-        ItemRecord item = item(30L, fridge);
+        ItemRecord item = item(fridge);
         ItemRecordDto update = new ItemRecordDto(30L, "Bread", "Sourdough", 1, "Bakery", 3.0,
                 LocalDate.of(2026, 9, 26), LocalDate.of(2026, 9, 19), fridge.getId());
         ItemRecordDto expected = new ItemRecordDto();
         givenCurrentFridgeAndItem(item);
         when(itemMapper.toItemRecordDto(item)).thenReturn(expected);
 
-        assertSame(expected, fridgeService.updateItem(update));
+        assertSame(expected, fridgeService.updateItem(item.getId(), update));
 
         assertEquals("Bread", item.getName());
         assertEquals("Sourdough", item.getDescription());
@@ -169,7 +169,7 @@ class FridgeServiceTests {
 
     @Test
     void deleteItemDeletesAndReturnsItemDto() {
-        ItemRecord item = item(30L, fridge);
+        ItemRecord item = item(fridge);
         ItemRecordDto expected = new ItemRecordDto();
         givenCurrentFridgeAndItem(item);
         when(itemMapper.toItemRecordDto(item)).thenReturn(expected);
@@ -390,9 +390,9 @@ class FridgeServiceTests {
         assertThrows(FridgeNotFoundException.class, () -> fridgeService.joinFridge(invite.getId()));
     }
 
-    private ItemRecord item(Long id, Fridge itemFridge) {
+    private ItemRecord item(Fridge itemFridge) {
         ItemRecord item = new ItemRecord();
-        item.setId(id);
+        item.setId(30L);
         item.setFridge(itemFridge);
         return item;
     }

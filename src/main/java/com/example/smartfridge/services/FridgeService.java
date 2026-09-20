@@ -64,8 +64,8 @@ public class FridgeService {
     }
 
     @Transactional
-    public ItemRecordDto updateItem(ItemRecordDto itemRecordDto) {
-        ItemRecord itemRecord = getItemRecordById(itemRecordDto.getId());
+    public ItemRecordDto updateItem(Long id, ItemRecordDto itemRecordDto) {
+        ItemRecord itemRecord = getItemRecordById(id);
 
         itemRecord.setName(itemRecordDto.getName());
         itemRecord.setDescription(itemRecordDto.getDescription());

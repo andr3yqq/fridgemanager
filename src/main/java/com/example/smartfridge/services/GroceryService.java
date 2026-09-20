@@ -119,11 +119,11 @@ public class GroceryService {
     }
 
     @Transactional
-    public void updateItem(GroceryItemDto groceryItemDto) {
-        GroceryItem groceryItem = groceryItemRepository.findById(groceryItemDto.getId()).orElseThrow(() -> new GroceryItemNotFoundException("Grocery item not found"));
+    public GroceryItemDto updateItem(Long id, GroceryItemDto groceryItemDto) {
+        GroceryItem groceryItem = groceryItemRepository.findById(id).orElseThrow(() -> new GroceryItemNotFoundException("Grocery item not found"));
         validateListOwnership(groceryItem.getGroceryList().getId());
         groceryItemMapper.updateGroceryItemFromDto(groceryItemDto, groceryItem);
-        groceryItemRepository.save(groceryItem);
+        return groceryItemMapper.toGroceryItemDto(groceryItemRepository.save(groceryItem));
     }
 
     @Transactional

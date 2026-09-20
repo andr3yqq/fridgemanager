@@ -229,7 +229,7 @@ class GroceryServiceTests {
         when(userUtils.getUserFromAuthentication()).thenReturn(user);
         when(groceryListRepository.findById(groceryList.getId())).thenReturn(Optional.of(groceryList));
 
-        groceryService.updateItem(update);
+        groceryService.updateItem(update.getId(), update);
 
         verify(groceryItemMapper).updateGroceryItemFromDto(update, item);
         verify(groceryItemRepository).save(item);

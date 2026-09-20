@@ -1,50 +1,44 @@
 package com.example.smartfridge.security;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.Date;
 
 @Component
 public class JwtProvider {
 
-    private final String SECRET_KEY = "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj";
+    private final SecretKey signingKey;
+    private final JwtParser jwtParser;
+    @Value("${JWT_EXPIRATION_TIME}")
+    private Long expirationTime;
 
-    private SecretKey getSignInKey() {
-        byte[] bytes = Base64.getDecoder()
-                .decode(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
-        return new SecretKeySpec(bytes, "HmacSHA256"); }
+    public JwtProvider(@Value("${JWT_SECRET}") String secret) {
+        byte[] decodedSecret = Decoders.BASE64.decode(secret);
+
+        this.signingKey = Keys.hmacShaKeyFor(decodedSecret);
+        this.jwtParser = Jwts.parser()
+                .verifyWith(signingKey)
+                .build();
+    }
 
     public String generateToken(String user) {
         return Jwts.builder()
                 .subject(user)
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24))
-                .signWith(getSignInKey())
+                .expiration(new Date(System.currentTimeMillis() + expirationTime))
+                .signWith(signingKey)
                 .compact();
     }
 
-    public String extractUsername(String token) {
-        return getClaims(token).getSubject();
-    }
-
-    public boolean validateToken(String token, String username) {
-        return (extractUsername(token).equals(username) && !isTokenExpired(token));
-    }
-
-    private boolean isTokenExpired(String token) {
-        return getClaims(token).getExpiration().before(new Date());
-    }
-
-    private Claims getClaims(String token) {
-        return Jwts.parser()
-                .verifyWith(getSignInKey())
-                .build()
+    public Claims parseClaims(String token) {
+        return jwtParser
                 .parseSignedClaims(token)
                 .getPayload();
     }
