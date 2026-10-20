@@ -3,6 +3,7 @@ package com.example.smartfridge.mappers;
 import com.example.smartfridge.dtos.GroceryItemDto;
 import com.example.smartfridge.entities.GroceryItem;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
 import java.util.List;
@@ -15,5 +16,7 @@ public interface GroceryItemMapper {
 
     GroceryItem toGroceryItem(GroceryItemDto groceryItemDto);
 
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "groceryList", ignore = true)
     void updateGroceryItemFromDto(GroceryItemDto groceryItemDto, @MappingTarget GroceryItem groceryItem);
 }

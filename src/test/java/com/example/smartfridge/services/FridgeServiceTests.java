@@ -16,6 +16,8 @@ import com.example.smartfridge.repositories.FridgeRepository;
 import com.example.smartfridge.repositories.ItemRepository;
 import com.example.smartfridge.repositories.UserRepository;
 import com.example.smartfridge.utils.UserUtils;
+import org.javers.core.Javers;
+import org.javers.core.JaversBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -64,6 +66,12 @@ class FridgeServiceTests {
     @Mock
     private UserUtils userUtils;
 
+    @Mock
+    private FridgeActivityService fridgeActivityService;
+
+    @Mock
+    private Javers javers;
+
     @InjectMocks
     private FridgeService fridgeService;
 
@@ -110,6 +118,27 @@ class FridgeServiceTests {
     }
 
     @Test
+    void itemHistoryCanReadUpdatesBeyondFirstHundredSnapshots() {
+        ItemRecord item = new ItemRecord();
+        item.setId(30L);
+        item.setFridge(fridge);
+        var realJavers = JaversBuilder.javers().build();
+        for (int quantity = 0; quantity <= 105; quantity++) {
+            item.setQuantity(quantity);
+            realJavers.commit("current", item);
+        }
+        when(userUtils.getCurrentUserFridge()).thenReturn(fridge);
+        when(itemRepository.findById(item.getId())).thenReturn(Optional.of(item));
+        when(javers.findChanges(any())).thenAnswer(invocation -> realJavers.findChanges(invocation.getArgument(0)));
+
+        List<ItemChangeDto> history = fridgeService.getItemHistory(item.getId(), 100, 5);
+
+        assertEquals(5, history.size());
+        assertEquals("5", history.getFirst().newValue());
+        assertEquals("1", history.getLast().newValue());
+    }
+
+    @Test
     void getItemByIdReturnsItemFromCurrentFridge() {
         ItemRecord item = item(fridge);
         ItemRecordDto expected = new ItemRecordDto();
@@ -137,6 +166,7 @@ class FridgeServiceTests {
         ItemRecordDto expected = new ItemRecordDto();
         when(itemMapper.toItemRecord(input)).thenReturn(item);
         when(userUtils.getCurrentUserFridge()).thenReturn(fridge);
+        when(itemRepository.save(item)).thenReturn(item);
         when(itemMapper.toItemRecordDto(item)).thenReturn(expected);
 
         assertSame(expected, fridgeService.createItem(input));
@@ -147,23 +177,18 @@ class FridgeServiceTests {
     }
 
     @Test
-    void updateItemCopiesEditableFieldsAndSavesItem() {
+    void updateItemMapsDtoAndSavesItem() {
         ItemRecord item = item(fridge);
         ItemRecordDto update = new ItemRecordDto(30L, "Bread", "Sourdough", 1, "Bakery", 3.0,
                 LocalDate.of(2026, 9, 26), LocalDate.of(2026, 9, 19), fridge.getId());
         ItemRecordDto expected = new ItemRecordDto();
         givenCurrentFridgeAndItem(item);
+        when(itemRepository.save(item)).thenReturn(item);
         when(itemMapper.toItemRecordDto(item)).thenReturn(expected);
 
         assertSame(expected, fridgeService.updateItem(item.getId(), update));
 
-        assertEquals("Bread", item.getName());
-        assertEquals("Sourdough", item.getDescription());
-        assertEquals(1, item.getQuantity());
-        assertEquals("Bakery", item.getCategory());
-        assertEquals(3.0, item.getPrice());
-        assertEquals(update.getBuyingDate(), item.getBuyingDate());
-        assertEquals(update.getExpirationDate(), item.getExpirationDate());
+        verify(itemMapper).updateItemRecordFromDto(update, item);
         verify(itemRepository).save(item);
     }
 

@@ -2,6 +2,7 @@ package com.example.smartfridge.controllers;
 
 
 import com.example.smartfridge.dtos.*;
+import com.example.smartfridge.services.FridgeActivityService;
 import com.example.smartfridge.services.FridgeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,7 @@ import java.util.List;
 public class FridgeController {
 
     private final FridgeService fridgeService;
+    private final FridgeActivityService fridgeActivityService;
 
     @GetMapping("/items")
     public ResponseEntity<List<ItemRecordDto>> allItemsByUser() {
@@ -64,6 +66,13 @@ public class FridgeController {
         return ResponseEntity.ok(fridgeService.getItemById(id));
     }
 
+    @GetMapping("/items/{id}/history")
+    public ResponseEntity<List<ItemChangeDto>> getItemHistory(@PathVariable Long id,
+                                                              @RequestParam(defaultValue = "0") int offset,
+                                                              @RequestParam(defaultValue = "50") int limit) {
+        return ResponseEntity.ok(fridgeService.getItemHistory(id, offset, limit));
+    }
+
     @PostMapping("/items")
     public ResponseEntity<ItemRecordDto> createItem(@RequestBody ItemRecordDto itemRecordDto) {
         ItemRecordDto createdItem = fridgeService.createItem(itemRecordDto);
@@ -78,5 +87,12 @@ public class FridgeController {
     @DeleteMapping("/items/{id}")
     public ResponseEntity<ItemRecordDto> deleteItem(@PathVariable Long id) {
         return ResponseEntity.ok(fridgeService.deleteItem(id));
+    }
+
+    @GetMapping({"/activity", "/logs"})
+    public ResponseEntity<List<UserLogRecordDto>> fridgeActivity(
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "50") int limit) {
+        return ResponseEntity.ok(fridgeActivityService.getFridgeActivity(offset, limit));
     }
 }

@@ -2,6 +2,7 @@ package com.example.smartfridge.services;
 
 import com.example.smartfridge.dtos.GroceryItemDto;
 import com.example.smartfridge.dtos.GroceryListDto;
+import com.example.smartfridge.dtos.ItemChangeDto;
 import com.example.smartfridge.dtos.ItemRecordDto;
 import com.example.smartfridge.entities.*;
 import com.example.smartfridge.exceptions.*;
@@ -12,6 +13,8 @@ import com.example.smartfridge.repositories.GroceryItemRepository;
 import com.example.smartfridge.repositories.GroceryListRepository;
 import com.example.smartfridge.repositories.ItemRepository;
 import com.example.smartfridge.utils.UserUtils;
+import org.javers.core.Javers;
+import org.javers.core.JaversBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -51,6 +54,9 @@ class GroceryServiceTests {
 
     @Mock
     private UserUtils userUtils;
+
+    @Mock
+    private Javers javers;
 
     @InjectMocks
     private GroceryService groceryService;
@@ -169,14 +175,15 @@ class GroceryServiceTests {
     @Test
     void updateListChangesDetailsForCreator() {
         GroceryListDto expected = new GroceryListDto();
+        expected.setName("Updated");
+        expected.setDescription("New description");
         when(userUtils.getUserFromAuthentication()).thenReturn(user);
         when(groceryListRepository.findById(groceryList.getId())).thenReturn(Optional.of(groceryList));
         when(groceryListRepository.save(groceryList)).thenReturn(groceryList);
         when(groceryListMapper.toGroceryListDto(groceryList)).thenReturn(expected);
 
-        assertSame(expected, groceryService.updateList(groceryList.getId(), "Updated", "New description"));
-        assertEquals("Updated", groceryList.getName());
-        assertEquals("New description", groceryList.getDescription());
+        assertSame(expected, groceryService.updateList(groceryList.getId(), expected));
+        verify(groceryListMapper).updateGroceryListFromDto(expected, groceryList);
         verify(groceryListRepository).save(groceryList);
     }
 
@@ -188,6 +195,45 @@ class GroceryServiceTests {
         assertThrows(UserIsNotOwnerOfGroceryListException.class,
                 () -> groceryService.deleteList(groceryList.getId()));
         verify(groceryListRepository, never()).delete(any(GroceryList.class));
+    }
+
+    @Test
+    void deleteListRejectsCreatorAfterLeavingFridge() {
+        user.setFridge(null);
+        when(userUtils.getUserFromAuthentication()).thenReturn(user);
+        when(groceryListRepository.findById(groceryList.getId())).thenReturn(Optional.of(groceryList));
+
+        assertThrows(UserIsNotOwnerOfGroceryListException.class,
+                () -> groceryService.deleteList(groceryList.getId()));
+        verify(groceryListRepository, never()).delete(any(GroceryList.class));
+    }
+
+    @Test
+    void groceryHistoriesCanReadUpdatesBeyondFirstHundredSnapshots() {
+        GroceryItem item = new GroceryItem();
+        item.setId(30L);
+        item.setGroceryList(groceryList);
+        var realJavers = JaversBuilder.javers().build();
+        for (int version = 0; version <= 105; version++) {
+            groceryList.setName("List " + version);
+            item.setQuantity(version);
+            realJavers.commit("current", groceryList);
+            realJavers.commit("current", item);
+        }
+        when(userUtils.getCurrentUserFridge()).thenReturn(fridge);
+        when(groceryListRepository.findById(groceryList.getId())).thenReturn(Optional.of(groceryList));
+        when(groceryItemRepository.findById(item.getId())).thenReturn(Optional.of(item));
+        when(javers.findChanges(any())).thenAnswer(invocation -> realJavers.findChanges(invocation.getArgument(0)));
+
+        List<ItemChangeDto> listHistory = groceryService.getGroceryListHistory(groceryList.getId(), 100, 5);
+        List<ItemChangeDto> itemHistory = groceryService.getGroceryItemHistory(item.getId(), 100, 5);
+
+        assertEquals(5, listHistory.size());
+        assertEquals("List 5", listHistory.getFirst().newValue());
+        assertEquals("List 1", listHistory.getLast().newValue());
+        assertEquals(5, itemHistory.size());
+        assertEquals("5", itemHistory.getFirst().newValue());
+        assertEquals("1", itemHistory.getLast().newValue());
     }
 
     @Test

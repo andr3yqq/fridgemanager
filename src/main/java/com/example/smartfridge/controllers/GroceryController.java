@@ -1,9 +1,6 @@
 package com.example.smartfridge.controllers;
 
-import com.example.smartfridge.dtos.GroceryItemDto;
-import com.example.smartfridge.dtos.GroceryListCreateDto;
-import com.example.smartfridge.dtos.GroceryListDto;
-import com.example.smartfridge.dtos.ItemRecordDto;
+import com.example.smartfridge.dtos.*;
 import com.example.smartfridge.services.GroceryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +27,13 @@ public class GroceryController {
         return ResponseEntity.ok(list);
     }
 
+    @GetMapping("/{listId}/history")
+    public ResponseEntity<List<ItemChangeDto>> getGroceryListHistory(@PathVariable Long listId,
+                                                                     @RequestParam(defaultValue = "0") int offset,
+                                                                     @RequestParam(defaultValue = "50") int limit) {
+        return ResponseEntity.ok(groceryService.getGroceryListHistory(listId, offset, limit));
+    }
+
     @PostMapping
     public ResponseEntity<GroceryListDto> createList(@RequestBody GroceryListCreateDto dto) {
         GroceryListDto createdList = groceryService.createList(dto.getName(), dto.getDescription());
@@ -48,6 +52,13 @@ public class GroceryController {
         return ResponseEntity.ok(items);
     }
 
+    @GetMapping("/items/{id}/history")
+    public ResponseEntity<List<ItemChangeDto>> getGroceryItemHistory(@PathVariable Long id,
+                                                                     @RequestParam(defaultValue = "0") int offset,
+                                                                     @RequestParam(defaultValue = "50") int limit) {
+        return ResponseEntity.ok(groceryService.getGroceryItemHistory(id, offset, limit));
+    }
+
     @PostMapping("/{listId}/items")
     public ResponseEntity<GroceryItemDto> addItemToList(@RequestBody GroceryItemDto groceryItemDto, @PathVariable Long listId) {
         return ResponseEntity.ok(groceryService.addItemToList(groceryItemDto, listId));
@@ -61,7 +72,7 @@ public class GroceryController {
 
     @PutMapping("/{listId}")
     public ResponseEntity<GroceryListDto> updateList(@RequestBody GroceryListDto groceryListDto, @PathVariable Long listId) {
-        return ResponseEntity.ok(groceryService.updateList(listId, groceryListDto.getName(), groceryListDto.getDescription()));
+        return ResponseEntity.ok(groceryService.updateList(listId, groceryListDto));
     }
 
     @PutMapping("/items/{id}")

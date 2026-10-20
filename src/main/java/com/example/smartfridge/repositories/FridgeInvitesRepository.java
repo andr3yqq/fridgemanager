@@ -13,4 +13,6 @@ public interface FridgeInvitesRepository extends JpaRepository<FridgeInvites, Lo
     List<FridgeInvites> findAllByInvitedUser(User invitedUser);
 
     boolean existsByFridgeAndUserAndInvitedUser(Fridge fridge, User currentUser, User invitedUser);
+
+    void deleteByFridge(Fridge fridge);
 }

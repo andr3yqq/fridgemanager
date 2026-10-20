@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.javers.core.metamodel.annotation.DiffIgnore;
 
 import java.time.LocalDate;
 
@@ -35,5 +36,6 @@ public class ItemRecord {
     private LocalDate buyingDate;
     @ManyToOne
     @JoinColumn(name = "fridge_id")
+    @DiffIgnore
     private Fridge fridge;
 }

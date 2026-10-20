@@ -2,6 +2,7 @@ package com.example.smartfridge.services;
 
 import com.example.smartfridge.dtos.GroceryItemDto;
 import com.example.smartfridge.dtos.GroceryListDto;
+import com.example.smartfridge.dtos.ItemChangeDto;
 import com.example.smartfridge.dtos.ItemRecordDto;
 import com.example.smartfridge.entities.*;
 import com.example.smartfridge.exceptions.*;
@@ -13,6 +14,11 @@ import com.example.smartfridge.repositories.GroceryListRepository;
 import com.example.smartfridge.repositories.ItemRepository;
 import com.example.smartfridge.utils.UserUtils;
 import lombok.RequiredArgsConstructor;
+import org.javers.core.Changes;
+import org.javers.core.Javers;
+import org.javers.core.commit.CommitMetadata;
+import org.javers.core.diff.changetype.ValueChange;
+import org.javers.repository.jql.QueryBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +26,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +38,7 @@ public class GroceryService {
     private final GroceryListMapper groceryListMapper;
     private final GroceryItemMapper groceryItemMapper;
     private final UserUtils userUtils;
+    private final Javers javers;
 
     private void validateUserFridgeMembership(Long fridgeId) {
         Fridge userFridge = userUtils.getCurrentUserFridge();
@@ -46,9 +54,11 @@ public class GroceryService {
     private GroceryList validateListOwnership(Long listId) {
         User user = userUtils.getUserFromAuthentication();
         GroceryList groceryList = groceryListRepository.findById(listId).orElseThrow(() -> new GroceryListNotFoundException("Grocery list not found"));
-        boolean isCreator = Objects.equals(user.getId(), groceryList.getUser().getId());
+        boolean isPartOfFridge = user.getFridge() != null
+                && Objects.equals(user.getFridge().getId(), groceryList.getFridge().getId());
+        boolean isCreator = isPartOfFridge && Objects.equals(user.getId(), groceryList.getUser().getId());
         boolean isFridgeOwner = Objects.equals(user.getId(), groceryList.getFridge().getOwner().getId());
-        if (!(isCreator || isFridgeOwner)) {
+        if (!isPartOfFridge || !(isCreator || isFridgeOwner)) {
             throw new UserIsNotOwnerOfGroceryListException("User is not the owner of the grocery list");
         }
         return groceryList;
@@ -67,6 +77,42 @@ public class GroceryService {
         GroceryList groceryList = groceryListRepository.findById(id).orElseThrow(() -> new GroceryListNotFoundException("Grocery list not found"));
         validateUserFridgeMembership(groceryList.getFridge().getId());
         return groceryListMapper.toGroceryListDto(groceryList);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ItemChangeDto> getGroceryListHistory(Long id, int offset, int limit) {
+        GroceryList groceryList = groceryListRepository.findById(id)
+                .orElseThrow(() -> new GroceryListNotFoundException("Grocery list not found"));
+        validateUserFridgeMembership(groceryList.getFridge().getId());
+        return getValueChangeHistory(id, GroceryList.class, offset, limit);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ItemChangeDto> getGroceryItemHistory(Long id, int offset, int limit) {
+        GroceryItem groceryItem = groceryItemRepository.findById(id)
+                .orElseThrow(() -> new GroceryItemNotFoundException("Grocery item not found"));
+        validateUserFridgeMembership(groceryItem.getGroceryList().getFridge().getId());
+        return getValueChangeHistory(id, GroceryItem.class, offset, limit);
+    }
+
+    private List<ItemChangeDto> getValueChangeHistory(Long id, Class<?> entityType, int offset, int limit) {
+        Changes changes = javers.findChanges(QueryBuilder.byInstanceId(id, entityType)
+                .skip(Math.max(0, offset))
+                .limit(Math.clamp(limit, 1, 100))
+                .build());
+        return changes.stream()
+                .filter(ValueChange.class::isInstance)
+                .map(ValueChange.class::cast)
+                .map(change -> {
+                    Optional<CommitMetadata> metadata = change.getCommitMetadata();
+                    return new ItemChangeDto(
+                            metadata.map(CommitMetadata::getAuthor).orElse("unknown"),
+                            metadata.map(commit -> commit.getCommitDate().toString()).orElse(""),
+                            change.getPropertyName(),
+                            Objects.toString(change.getLeft(), null),
+                            Objects.toString(change.getRight(), null));
+                })
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -91,13 +137,14 @@ public class GroceryService {
     }
 
     @Transactional
-    public GroceryListDto updateList(Long id, String groceryListName, String description) {
+    public GroceryListDto updateList(Long id, GroceryListDto groceryListDto) {
         GroceryList groceryList = validateListOwnership(id);
-        groceryList.setName(groceryListName);
-        groceryList.setDescription(description);
+        groceryListMapper.updateGroceryListFromDto(groceryListDto, groceryList);
         return groceryListMapper.toGroceryListDto(groceryListRepository.save(groceryList));
     }
 
+    //it doesn't audit each item deletion with list as intended
+    @Transactional
     public void deleteList(Long id) {
         GroceryList groceryList = validateListOwnership(id);
         groceryListRepository.delete(groceryList);
@@ -108,10 +155,12 @@ public class GroceryService {
         GroceryItem groceryItem = groceryItemMapper.toGroceryItem(groceryItemDto);
         GroceryList groceryList = groceryListRepository.findById(listId).orElseThrow(() -> new GroceryListNotFoundException("Grocery list not found"));
         validateUserFridgeMembership(groceryList.getFridge().getId());
+        groceryItem.setId(null);
         groceryItem.setGroceryList(groceryList);
         return groceryItemMapper.toGroceryItemDto(groceryItemRepository.save(groceryItem));
     }
 
+    @Transactional
     public void deleteItem(Long id) {
         GroceryItem groceryItem = groceryItemRepository.findById(id).orElseThrow(() -> new GroceryItemNotFoundException("Grocery item not found"));
         validateListOwnership(groceryItem.getGroceryList().getId());

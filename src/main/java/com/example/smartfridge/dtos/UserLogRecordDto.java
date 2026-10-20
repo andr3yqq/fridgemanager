@@ -5,7 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.util.Map;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -14,13 +15,23 @@ import java.time.LocalDateTime;
 public class UserLogRecordDto {
     private Long id;
 
-    private LocalDateTime timestamp;
+    private Instant timestamp;
 
     private String action;
 
-    private String itemName;
+    private String entityType;
 
-    private String details;
+    private Long entityId;
+
+    private String entityName;
+
+    private String field;
+
+    private String oldValue;
+
+    private String newValue;
+
+    private Map<String, String> details;
 
     private Long userId;
 

@@ -21,9 +21,6 @@ public interface ItemMapper {
 
     List<ItemRecordDto> toItemRecordDtoList(List<ItemRecord> itemRecords);
 
-    @Mapping(source = "fridgeId", target = "fridge", qualifiedByName = "fridgeIdToFridge")
-    void updateItemRecord(ItemRecordDto itemRecordDto, @MappingTarget ItemRecord itemRecord);
-
     @Named("fridgeIdToFridge")
     default Fridge fridgeIdToFridge(Long id) {
         if (id == null) {
@@ -33,5 +30,9 @@ public interface ItemMapper {
         fridge.setId(id);
         return fridge;
     }
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "fridge", ignore = true)
+    void updateItemRecordFromDto(ItemRecordDto itemRecordDto, @MappingTarget ItemRecord itemRecord);
 
 }

@@ -28,13 +28,13 @@ public class Fridge {
     @OneToMany(mappedBy = "fridge")
     private List<User> users = new ArrayList<>();
     @OneToMany(
-            mappedBy = "fridgeId",
+            mappedBy = "fridge",
             cascade = CascadeType.REMOVE,
             orphanRemoval = true
     )
     private List<ItemRecord> items = new ArrayList<>();
     @OneToMany(
-            mappedBy = "fridgeId",
+            mappedBy = "fridge",
             cascade = CascadeType.REMOVE,
             orphanRemoval = true
     )
