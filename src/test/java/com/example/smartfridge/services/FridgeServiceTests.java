@@ -21,10 +21,18 @@ import org.javers.core.JaversBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.time.LocalDate;
@@ -107,18 +115,70 @@ class FridgeServiceTests {
     }
 
     @Test
-    void allItemsByFridgeLoadsAndMapsCurrentFridgeItems() {
-        List<ItemRecord> items = List.of(new ItemRecord());
-        List<ItemRecordDto> expected = List.of(new ItemRecordDto());
+    void allItemsByFridgeLoadsAndMapsCurrentFridgeItemsPreservingPagination() {
+        PageRequest pageable = PageRequest.of(1, 2, Sort.by("expirationDate"));
+        ItemRecord item = new ItemRecord();
+        ItemRecordDto expected = new ItemRecordDto();
+        Page<ItemRecord> items = new PageImpl<>(List.of(item), pageable, 3);
         when(userUtils.getCurrentUserFridge()).thenReturn(fridge);
-        when(itemRepository.findAllByFridge(fridge)).thenReturn(items);
-        when(itemMapper.toItemRecordDtoList(items)).thenReturn(expected);
+        when(itemRepository.findAllByFridge(fridge, pageable)).thenReturn(items);
+        when(itemMapper.toItemRecordDto(item)).thenReturn(expected);
 
-        assertSame(expected, fridgeService.allItemsByFridge());
+        Page<ItemRecordDto> result = fridgeService.allItemsByFridge(pageable);
+
+        assertEquals(List.of(expected), result.getContent());
+        assertEquals(pageable, result.getPageable());
+        assertEquals(3, result.getTotalElements());
+        assertEquals(2, result.getTotalPages());
+        assertTrue(result.isLast());
+        verify(itemRepository).findAllByFridge(fridge, pageable);
     }
 
     @Test
-    void itemHistoryCanReadUpdatesBeyondFirstHundredSnapshots() {
+    void allItemsByFridgeReturnsEmptyPageWhenFridgeHasNoItems() {
+        PageRequest pageable = PageRequest.of(0, 20);
+        when(userUtils.getCurrentUserFridge()).thenReturn(fridge);
+        when(itemRepository.findAllByFridge(fridge, pageable)).thenReturn(Page.empty(pageable));
+
+        Page<ItemRecordDto> result = fridgeService.allItemsByFridge(pageable);
+
+        assertTrue(result.isEmpty());
+        assertEquals(pageable, result.getPageable());
+        assertEquals(0, result.getTotalElements());
+        verifyNoInteractions(itemMapper);
+    }
+
+    @Test
+    void allItemsByFridgeReturnsEmptyPageBeyondLastPagePreservingTotal() {
+        PageRequest pageable = PageRequest.of(3, 2);
+        when(userUtils.getCurrentUserFridge()).thenReturn(fridge);
+        when(itemRepository.findAllByFridge(fridge, pageable))
+                .thenReturn(new PageImpl<>(List.of(), pageable, 3));
+
+        Page<ItemRecordDto> result = fridgeService.allItemsByFridge(pageable);
+
+        assertTrue(result.isEmpty());
+        assertEquals(pageable, result.getPageable());
+        assertEquals(3, result.getTotalElements());
+        assertEquals(2, result.getTotalPages());
+        verifyNoInteractions(itemMapper);
+    }
+
+    @Test
+    void allItemsByFridgeRejectsUserWithoutFridgeBeforeQueryingItems() {
+        when(userUtils.getCurrentUserFridge())
+                .thenThrow(new UserDoesNotHaveFridgeException("User does not have a fridge"));
+
+        assertThrows(UserDoesNotHaveFridgeException.class,
+                () -> fridgeService.allItemsByFridge(PageRequest.of(0, 20)));
+
+        verifyNoInteractions(itemRepository, itemMapper);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"100, 5, 5, 5, 1", "-1, 0, 1, 105, 105", "0, -5, 1, 105, 105", "0, 101, 100, 105, 6"})
+    void itemHistoryAppliesPaginationAndClampsBounds(int offset, int limit, int expectedSize,
+                                                     String firstValue, String lastValue) {
         ItemRecord item = new ItemRecord();
         item.setId(30L);
         item.setFridge(fridge);
@@ -131,11 +191,51 @@ class FridgeServiceTests {
         when(itemRepository.findById(item.getId())).thenReturn(Optional.of(item));
         when(javers.findChanges(any())).thenAnswer(invocation -> realJavers.findChanges(invocation.getArgument(0)));
 
-        List<ItemChangeDto> history = fridgeService.getItemHistory(item.getId(), 100, 5);
+        List<ItemChangeDto> history = fridgeService.getItemHistory(item.getId(), offset, limit);
 
-        assertEquals(5, history.size());
-        assertEquals("5", history.getFirst().newValue());
-        assertEquals("1", history.getLast().newValue());
+        assertEquals(expectedSize, history.size());
+        assertEquals(firstValue, history.getFirst().newValue());
+        assertEquals(lastValue, history.getLast().newValue());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"read", "update", "delete", "history"})
+    void itemOperationsRejectMissingItemsWithoutWritesOrHistoryAccess(String operation) {
+        when(userUtils.getCurrentUserFridge()).thenReturn(fridge);
+        when(itemRepository.findById(30L)).thenReturn(Optional.empty());
+
+        assertThrows(ItemNotFoundException.class, () -> accessItem(operation, 30L));
+
+        verify(itemRepository, never()).save(any());
+        verify(itemRepository, never()).delete(any());
+        verifyNoInteractions(itemMapper, javers);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"read", "update", "delete", "history"})
+    void itemOperationsRejectAnotherFridgesItemsWithoutWritesOrHistoryAccess(String operation) {
+        Fridge otherFridge = new Fridge();
+        otherFridge.setId(11L);
+        ItemRecord item = item(otherFridge);
+        givenCurrentFridgeAndItem(item);
+
+        assertThrows(ItemNotFoundException.class, () -> accessItem(operation, item.getId()));
+
+        assertSame(otherFridge, item.getFridge());
+        verify(itemRepository, never()).save(any());
+        verify(itemRepository, never()).delete(any());
+        verifyNoInteractions(itemMapper, javers);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"read", "update", "delete", "history"})
+    void itemOperationsRejectUserWithoutFridgeBeforeAccessingItems(String operation) {
+        when(userUtils.getCurrentUserFridge())
+                .thenThrow(new UserDoesNotHaveFridgeException("User does not have a fridge"));
+
+        assertThrows(UserDoesNotHaveFridgeException.class, () -> accessItem(operation, 30L));
+
+        verifyNoInteractions(itemRepository, itemMapper, javers);
     }
 
     @Test
@@ -174,6 +274,18 @@ class FridgeServiceTests {
         assertNull(input.getId());
         assertSame(fridge, item.getFridge());
         verify(itemRepository).save(item);
+    }
+
+    @Test
+    void createItemRejectsUserWithoutFridgeWithoutSavingItem() {
+        ItemRecordDto input = new ItemRecordDto();
+        when(itemMapper.toItemRecord(input)).thenReturn(new ItemRecord());
+        when(userUtils.getCurrentUserFridge())
+                .thenThrow(new UserDoesNotHaveFridgeException("User does not have a fridge"));
+
+        assertThrows(UserDoesNotHaveFridgeException.class, () -> fridgeService.createItem(input));
+
+        verifyNoInteractions(itemRepository, fridgeActivityService);
     }
 
     @Test
@@ -252,6 +364,7 @@ class FridgeServiceTests {
         assertNull(user.getFridge());
         assertNull(member.getFridge());
         verify(userRepository).saveAll(fridge.getUsers());
+        verify(fridgeInvitesRepository).deleteByFridge(fridge);
         verify(fridgeRepository).delete(fridge);
     }
 
@@ -262,7 +375,20 @@ class FridgeServiceTests {
         when(userUtils.getCurrentUserFridge()).thenReturn(fridge);
 
         assertThrows(UserIsNotOwnerOfFridgeException.class, () -> fridgeService.deleteFridge());
-        verify(fridgeRepository, never()).delete(any(Fridge.class));
+        assertSame(fridge, user.getFridge());
+        verifyNoInteractions(userRepository, fridgeRepository, fridgeInvitesRepository, fridgeActivityService);
+    }
+
+    @Test
+    void deleteFridgeRejectsUserWithoutFridgeWithoutDeletingData() {
+        user.setFridge(null);
+        when(userUtils.getUserFromAuthentication()).thenReturn(user);
+        when(userUtils.getCurrentUserFridge())
+                .thenThrow(new UserDoesNotHaveFridgeException("User does not have a fridge"));
+
+        assertThrows(UserDoesNotHaveFridgeException.class, () -> fridgeService.deleteFridge());
+
+        verifyNoInteractions(userRepository, fridgeRepository, fridgeInvitesRepository, fridgeActivityService);
     }
 
     @Test
@@ -318,6 +444,30 @@ class FridgeServiceTests {
         when(fridgeInvitesRepository.existsByFridgeAndUserAndInvitedUser(fridge, user, otherUser)).thenReturn(true);
 
         assertThrows(InviteConflictException.class, () -> fridgeService.inviteUser(otherUser.getUsername()));
+        verify(fridgeInvitesRepository, never()).save(any());
+        verifyNoInteractions(fridgeInvitesMapper, fridgeActivityService);
+    }
+
+    @Test
+    void inviteUserRejectsUserWhoAlreadyHasFridgeWithoutCreatingInvite() {
+        Fridge otherFridge = new Fridge();
+        otherFridge.setId(11L);
+        otherUser.setFridge(otherFridge);
+        when(userUtils.getUserFromAuthentication()).thenReturn(user);
+        when(userRepository.findUserByUsername(otherUser.getUsername())).thenReturn(Optional.of(otherUser));
+
+        assertThrows(UserAlreadyHasFridgeException.class, () -> fridgeService.inviteUser(otherUser.getUsername()));
+
+        assertSame(otherFridge, otherUser.getFridge());
+        verifyNoInteractions(fridgeInvitesRepository, fridgeInvitesMapper, fridgeActivityService);
+    }
+
+    @Test
+    void getInvitesForUserReturnsEmptyListWhenThereAreNoInvites() {
+        when(userUtils.getUserFromAuthentication()).thenReturn(user);
+        when(fridgeInvitesRepository.findAllByInvitedUser(user)).thenReturn(List.of());
+
+        assertTrue(fridgeService.getInvitesForUser().isEmpty());
     }
 
     @Test
@@ -355,7 +505,20 @@ class FridgeServiceTests {
         when(userUtils.getCurrentUserFridge()).thenReturn(fridge);
 
         assertThrows(UserIsOwnerOfThisFridgeException.class, () -> fridgeService.leaveFridge());
-        verify(userRepository, never()).save(any(User.class));
+        assertSame(fridge, user.getFridge());
+        verifyNoInteractions(userRepository, userMapper, fridgeActivityService);
+    }
+
+    @Test
+    void leaveFridgeRejectsUserWithoutFridgeWithoutSavingOrLogging() {
+        user.setFridge(null);
+        when(userUtils.getUserFromAuthentication()).thenReturn(user);
+        when(userUtils.getCurrentUserFridge())
+                .thenThrow(new UserDoesNotHaveFridgeException("User does not have a fridge"));
+
+        assertThrows(UserDoesNotHaveFridgeException.class, () -> fridgeService.leaveFridge());
+
+        verifyNoInteractions(userRepository, userMapper, fridgeActivityService);
     }
 
     @Test
@@ -385,6 +548,22 @@ class FridgeServiceTests {
     }
 
     @Test
+    void joinFridgeRejectsExistingMembershipWithoutConsumingInvite() {
+        Fridge targetFridge = new Fridge();
+        targetFridge.setId(11L);
+        FridgeInvites invite = invite(40L, otherUser, user, targetFridge, FridgeInviteStatus.INVITED);
+        when(userUtils.getUserFromAuthentication()).thenReturn(user);
+        when(fridgeInvitesRepository.findById(invite.getId())).thenReturn(Optional.of(invite));
+
+        assertThrows(UserAlreadyHasFridgeException.class, () -> fridgeService.joinFridge(invite.getId()));
+
+        assertSame(fridge, user.getFridge());
+        assertEquals(FridgeInviteStatus.INVITED, invite.getStatus());
+        verify(fridgeInvitesRepository, never()).save(any());
+        verifyNoInteractions(fridgeRepository, userRepository, userMapper, fridgeActivityService);
+    }
+
+    @Test
     void joinFridgeThrowsWhenInviteBelongsToAnotherUser() {
         user.setFridge(null);
         FridgeInvites invite = invite(40L, otherUser, otherUser, fridge, FridgeInviteStatus.INVITED);
@@ -392,16 +571,25 @@ class FridgeServiceTests {
         when(fridgeInvitesRepository.findById(invite.getId())).thenReturn(Optional.of(invite));
 
         assertThrows(InviteNotOwnedException.class, () -> fridgeService.joinFridge(invite.getId()));
+        assertNull(user.getFridge());
+        assertEquals(FridgeInviteStatus.INVITED, invite.getStatus());
+        verify(fridgeInvitesRepository, never()).save(any());
+        verifyNoInteractions(fridgeRepository, userRepository, userMapper, fridgeActivityService);
     }
 
-    @Test
-    void joinFridgeThrowsWhenInviteWasAlreadyProcessed() {
+    @ParameterizedTest
+    @EnumSource(value = FridgeInviteStatus.class, names = {"ACCEPTED", "REJECTED"})
+    void joinFridgeThrowsWhenInviteWasAlreadyProcessed(FridgeInviteStatus status) {
         user.setFridge(null);
-        FridgeInvites invite = invite(40L, user, user, fridge, FridgeInviteStatus.ACCEPTED);
+        FridgeInvites invite = invite(40L, user, user, fridge, status);
         when(userUtils.getUserFromAuthentication()).thenReturn(user);
         when(fridgeInvitesRepository.findById(invite.getId())).thenReturn(Optional.of(invite));
 
         assertThrows(InviteAlreadyProcessedException.class, () -> fridgeService.joinFridge(invite.getId()));
+        assertNull(user.getFridge());
+        assertEquals(status, invite.getStatus());
+        verify(fridgeInvitesRepository, never()).save(any());
+        verifyNoInteractions(fridgeRepository, userRepository, userMapper, fridgeActivityService);
     }
 
     @Test
@@ -413,6 +601,20 @@ class FridgeServiceTests {
         when(fridgeRepository.findById(fridge.getId())).thenReturn(Optional.empty());
 
         assertThrows(FridgeNotFoundException.class, () -> fridgeService.joinFridge(invite.getId()));
+        assertNull(user.getFridge());
+        assertEquals(FridgeInviteStatus.INVITED, invite.getStatus());
+        verify(fridgeInvitesRepository, never()).save(any());
+        verifyNoInteractions(userRepository, userMapper, fridgeActivityService);
+    }
+
+    private void accessItem(String operation, Long itemId) {
+        switch (operation) {
+            case "read" -> fridgeService.getItemById(itemId);
+            case "update" -> fridgeService.updateItem(itemId, new ItemRecordDto());
+            case "delete" -> fridgeService.deleteItem(itemId);
+            case "history" -> fridgeService.getItemHistory(itemId, 0, 50);
+            default -> throw new IllegalArgumentException("Unknown item operation: " + operation);
+        }
     }
 
     private ItemRecord item(Fridge itemFridge) {

@@ -15,9 +15,11 @@ import org.javers.core.diff.Change;
 import org.javers.core.diff.changetype.*;
 import org.javers.core.metamodel.object.GlobalId;
 import org.javers.repository.jql.QueryBuilder;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -45,15 +47,24 @@ public class FridgeActivityService {
     private final UserLogMapper userLogMapper;
 
     @Transactional(readOnly = true)
-    public List<UserLogRecordDto> getFridgeActivity() {
-        return getFridgeActivity(0, DEFAULT_PAGE_SIZE);
+    public Slice<UserLogRecordDto> getFridgeActivity() {
+        return getFridgeActivity(PageRequest.of(0, DEFAULT_PAGE_SIZE));
     }
 
     @Transactional(readOnly = true)
-    public List<UserLogRecordDto> getFridgeActivity(int offset, int limit) {
-        int safeOffset = Math.clamp(offset, 0, MAX_OFFSET);
-        int safeLimit = Math.clamp(limit, 1, MAX_PAGE_SIZE);
-        int fetchCount = safeOffset + safeLimit;
+    public Slice<UserLogRecordDto> getFridgeActivity(Pageable pageable) {
+        int size = Math.clamp(pageable.getPageSize(), 1, MAX_PAGE_SIZE);
+        Pageable effectivePageable = PageRequest.of(
+                pageable.getPageNumber(),
+                size,
+                Sort.by(Sort.Direction.DESC, "timestamp"));
+
+        long offset = effectivePageable.getOffset();
+        if (offset > MAX_OFFSET) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Activity offset exceeds " + MAX_OFFSET);
+        }
+        int fetchCount = (int) offset + size + 1;
         Fridge fridge = userUtils.getCurrentUserFridge();
         Long fridgeId = fridge.getId();
 
@@ -63,12 +74,18 @@ public class FridgeActivityService {
                 .map(userLogMapper::toUserLogRecordDto)
                 .forEach(activity::add);
 
-        return activity.stream()
+        List<UserLogRecordDto> content = activity.stream()
                 .sorted(Comparator.comparing(UserLogRecordDto::getTimestamp,
                         Comparator.nullsLast(Comparator.reverseOrder())))
-                .skip(safeOffset)
-                .limit(safeLimit)
+                .skip(offset)
+                .limit(size + 1L)
                 .toList();
+
+        boolean hasNext = content.size() > size;
+        List<UserLogRecordDto> items =
+                content.subList(0, Math.min(size, content.size()));
+
+        return new SliceImpl<>(items, effectivePageable, hasNext);
     }
 
     private List<UserLogRecordDto> loadJaVersActivity(Long fridgeId, int required) {

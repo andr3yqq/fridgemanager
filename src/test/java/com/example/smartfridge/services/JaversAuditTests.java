@@ -9,6 +9,7 @@ import com.example.smartfridge.repositories.UserLogsRepository;
 import com.example.smartfridge.utils.UserUtils;
 import org.javers.core.JaversBuilder;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageRequest;
 
 import java.time.Clock;
 import java.util.List;
@@ -77,7 +78,7 @@ class JaversAuditTests {
         when(logs.findActivityByFridge(eq(fridge), anyList(), any())).thenReturn(List.of());
         var service = new FridgeActivityService(javers, Clock.systemUTC(), userUtils, logs, mock(UserLogMapper.class));
 
-        var activity = service.getFridgeActivity(200, 50);
+        var activity = service.getFridgeActivity(PageRequest.of(4, 50)).getContent();
 
         assertEquals(50, activity.size());
         assertEquals("49", activity.getFirst().getNewValue());

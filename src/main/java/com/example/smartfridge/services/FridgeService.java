@@ -24,6 +24,8 @@ import org.javers.core.Javers;
 import org.javers.core.commit.CommitMetadata;
 import org.javers.core.diff.changetype.ValueChange;
 import org.javers.repository.jql.QueryBuilder;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,8 +56,9 @@ public class FridgeService {
     }
 
     @Transactional(readOnly = true)
-    public List<ItemRecordDto> allItemsByFridge() {
-        return itemMapper.toItemRecordDtoList(itemRepository.findAllByFridge(userUtils.getCurrentUserFridge()));
+    public Page<ItemRecordDto> allItemsByFridge(Pageable pageable) {
+        return itemRepository.findAllByFridge(userUtils.getCurrentUserFridge(), pageable)
+                .map(itemMapper::toItemRecordDto);
     }
 
     @Transactional(readOnly = true)

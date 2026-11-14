@@ -27,7 +27,12 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -127,7 +132,7 @@ class FridgeActivityServiceTests {
                 .thenReturn(List.of(inviteLog));
         when(userLogMapper.toUserLogRecordDto(inviteLog)).thenReturn(inviteDto);
 
-        List<UserLogRecordDto> activity = fridgeActivityService.getFridgeActivity();
+        List<UserLogRecordDto> activity = fridgeActivityService.getFridgeActivity().getContent();
 
         assertEquals(4, activity.size());
         assertEquals(AuditAction.GROCERY_LIST_DELETED.name(), activity.getFirst().getAction());
@@ -169,7 +174,7 @@ class FridgeActivityServiceTests {
                 PrettyValuePrinter.getDefault()));
         when(userLogsRepository.findActivityByFridge(eq(fridge), anyList(), any(Pageable.class))).thenReturn(List.of());
 
-        List<UserLogRecordDto> activity = fridgeActivityService.getFridgeActivity();
+        List<UserLogRecordDto> activity = fridgeActivityService.getFridgeActivity().getContent();
 
         assertEquals(2, activity.size());
         assertEquals(AuditAction.GROCERY_ITEM_DELETED.name(), activity.get(0).getAction());
@@ -189,13 +194,16 @@ class FridgeActivityServiceTests {
         when(javers.findChanges(any())).thenReturn(new Changes(changes, PrettyValuePrinter.getDefault()));
         when(userLogsRepository.findActivityByFridge(eq(fridge), anyList(), any(Pageable.class))).thenReturn(List.of());
 
-        List<UserLogRecordDto> page = fridgeActivityService.getFridgeActivity(1, 2);
+        Slice<UserLogRecordDto> result = fridgeActivityService.getFridgeActivity(PageRequest.of(1, 2));
+        List<UserLogRecordDto> page = result.getContent();
 
-        assertEquals(2, page.size());
-        assertEquals(2L, page.get(0).getEntityId());
-        assertEquals(1L, page.get(1).getEntityId());
+        assertEquals(1, page.size());
+        assertEquals(1L, page.getFirst().getEntityId());
+        assertEquals(1, result.getNumber());
+        assertEquals(2, result.getSize());
+        assertFalse(result.hasNext());
         verify(userLogsRepository).findActivityByFridge(eq(fridge), anyList(),
-                ArgumentMatchers.argThat(pageable -> pageable.getPageSize() == 3));
+                ArgumentMatchers.argThat(pageable -> pageable.getPageSize() == 5 && pageable.getOffset() == 0));
     }
 
     @Test
@@ -213,10 +221,10 @@ class FridgeActivityServiceTests {
                 PrettyValuePrinter.getDefault());
         when(userUtils.getCurrentUserFridge()).thenReturn(fridge);
         when(javers.findChanges(any())).thenReturn(firstPage, expandedPage);
-        when(javers.findSnapshots(any())).thenReturn(Collections.nCopies(200, mock(CdoSnapshot.class)));
+        when(javers.findSnapshots(any())).thenReturn(Collections.nCopies(200, mock(CdoSnapshot.class)), List.of());
         when(userLogsRepository.findActivityByFridge(eq(fridge), anyList(), any(Pageable.class))).thenReturn(List.of());
 
-        List<UserLogRecordDto> activity = fridgeActivityService.getFridgeActivity(0, 2);
+        List<UserLogRecordDto> activity = fridgeActivityService.getFridgeActivity(PageRequest.of(0, 2)).getContent();
 
         assertEquals(2, activity.size());
         assertEquals(List.of(2L, 1L), activity.stream().map(UserLogRecordDto::getEntityId).toList());
@@ -238,10 +246,11 @@ class FridgeActivityServiceTests {
         int[] calls = {0};
         when(javers.findChanges(any())).thenAnswer(invocation -> ++calls[0] <= 25
                 ? ignoredChanges : visibleChanges);
-        when(javers.findSnapshots(any())).thenReturn(Collections.nCopies(200, mock(CdoSnapshot.class)));
+        when(javers.findSnapshots(any())).thenAnswer(invocation -> calls[0] <= 25
+                ? Collections.nCopies(200, mock(CdoSnapshot.class)) : List.of());
         when(userLogsRepository.findActivityByFridge(eq(fridge), anyList(), any(Pageable.class))).thenReturn(List.of());
 
-        List<UserLogRecordDto> activity = fridgeActivityService.getFridgeActivity(0, 1);
+        List<UserLogRecordDto> activity = fridgeActivityService.getFridgeActivity(PageRequest.of(0, 1)).getContent();
 
         assertEquals(1, activity.size());
         assertEquals(2L, activity.getFirst().getEntityId());
@@ -261,7 +270,7 @@ class FridgeActivityServiceTests {
                 PrettyValuePrinter.getDefault()));
         when(userLogsRepository.findActivityByFridge(eq(fridge), anyList(), any(Pageable.class))).thenReturn(List.of());
 
-        List<UserLogRecordDto> activity = fridgeActivityService.getFridgeActivity();
+        List<UserLogRecordDto> activity = fridgeActivityService.getFridgeActivity().getContent();
 
         assertEquals(2, activity.size());
         UserLogRecordDto groceryChange = activity.stream()
@@ -288,6 +297,65 @@ class FridgeActivityServiceTests {
         when(userLogsRepository.findActivityByFridge(eq(fridge), anyList(), any(Pageable.class))).thenReturn(List.of());
 
         assertTrue(fridgeActivityService.getFridgeActivity().isEmpty());
+    }
+
+    @Test
+    void getFridgeActivityUsesLookaheadAcrossMergedSources() {
+        when(userUtils.getCurrentUserFridge()).thenReturn(fridge);
+        when(javers.findChanges(any())).thenReturn(new Changes(List.of(
+                valueChange("ItemRecord", 1L, "quantity", 1, 2, "alex", fixedTime, "Milk"),
+                valueChange("ItemRecord", 2L, "quantity", 1, 2, "alex", fixedTime.minusSeconds(2), "Bread")),
+                PrettyValuePrinter.getDefault()));
+        UserLogRecord log = new UserLogRecord();
+        UserLogRecordDto manual = new UserLogRecordDto();
+        manual.setTimestamp(fixedTime.minusSeconds(1));
+        when(userLogsRepository.findActivityByFridge(eq(fridge), anyList(), any(Pageable.class)))
+                .thenReturn(List.of(log));
+        when(userLogMapper.toUserLogRecordDto(log)).thenReturn(manual);
+
+        Slice<UserLogRecordDto> result = fridgeActivityService.getFridgeActivity(PageRequest.of(0, 2));
+
+        assertEquals(2, result.getNumberOfElements());
+        assertEquals(1L, result.getContent().getFirst().getEntityId());
+        assertSame(manual, result.getContent().getLast());
+        assertTrue(result.hasNext());
+    }
+
+    @Test
+    void getFridgeActivityCapsSizeAndEnforcesNewestFirst() {
+        when(userUtils.getCurrentUserFridge()).thenReturn(fridge);
+        when(javers.findChanges(any())).thenReturn(new Changes(List.of(), PrettyValuePrinter.getDefault()));
+
+        Slice<UserLogRecordDto> result = fridgeActivityService.getFridgeActivity(
+                PageRequest.of(0, 500, Sort.by("username")));
+
+        assertEquals(100, result.getSize());
+        assertEquals(Sort.by(Sort.Direction.DESC, "timestamp"), result.getSort());
+        assertTrue(result.isEmpty());
+        assertFalse(result.hasNext());
+    }
+
+    @Test
+    void getFridgeActivityRejectsExcessiveOffsetBeforeReadingHistory() {
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> fridgeActivityService.getFridgeActivity(PageRequest.of(101, 100)));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        verifyNoInteractions(javers, userUtils, userLogsRepository, userLogMapper);
+    }
+
+    @Test
+    void getFridgeActivityReturnsEmptySliceBeyondLastPage() {
+        when(userUtils.getCurrentUserFridge()).thenReturn(fridge);
+        when(javers.findChanges(any())).thenReturn(new Changes(List.of(
+                valueChange("ItemRecord", 1L, "quantity", 1, 2, "alex", fixedTime, "Milk")),
+                PrettyValuePrinter.getDefault()));
+
+        Slice<UserLogRecordDto> result = fridgeActivityService.getFridgeActivity(PageRequest.of(2, 2));
+
+        assertTrue(result.isEmpty());
+        assertFalse(result.hasNext());
+        assertEquals(2, result.getNumber());
     }
 
     private ValueChange valueChange(String typeName, Long id, String field, Object oldValue,
