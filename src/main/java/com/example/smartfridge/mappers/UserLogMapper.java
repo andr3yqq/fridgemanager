@@ -13,11 +13,11 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface UserLogMapper {
      @Mapping(source = "user.id",target = "userId")
-     @Mapping(source = "fridgeId.id", target = "fridgeId")
+     @Mapping(source = "fridge.id", target = "fridgeId")
      @Mapping(source = "user.username", target = "username")
      UserLogRecordDto toUserLogRecordDto(UserLogRecord userLogRecord);
      @Mapping(source = "userId",target = "user",qualifiedByName = "userIdToUser")
-     @Mapping(source = "fridgeId", target = "fridgeId", qualifiedByName = "fridgeIdToFridge")
+     @Mapping(source = "fridgeId", target = "fridge", qualifiedByName = "fridgeIdToFridge")
      UserLogRecord toUserLogRecord(UserLogRecordDto userLogRecordDto);
 
      List<UserLogRecordDto> toUserLogRecordDtoList(List<UserLogRecord> userLogRecords);

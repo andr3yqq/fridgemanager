@@ -15,14 +15,14 @@ public interface FridgeInvitesMapper {
 
     @Mapping(source = "user.id", target = "userId")
     @Mapping(source = "invitedUser.id", target = "invitedId")
-    @Mapping(source = "fridgeId.id", target = "fridgeId")
+    @Mapping(source = "fridge.id", target = "fridgeId")
     FridgeInvitesDto toDto(FridgeInvites fridgeInvites);
 
     List<FridgeInvitesDto> toDtoList(List<FridgeInvites> fridgeInvites);
 
     @Mapping(source = "userId", target = "user", qualifiedByName = "userIdToUser")
     @Mapping(source = "invitedId", target = "invitedUser", qualifiedByName = "userIdToUser")
-    @Mapping(source = "fridgeId", target = "fridgeId", qualifiedByName = "fridgeIdToFridge")
+    @Mapping(source = "fridgeId", target = "fridge", qualifiedByName = "fridgeIdToFridge")
     FridgeInvites toEntity(FridgeInvitesDto fridgeInvitesDto);
 
     @Named("userIdToUser")

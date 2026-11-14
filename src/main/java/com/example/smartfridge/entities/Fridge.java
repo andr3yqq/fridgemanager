@@ -22,17 +22,19 @@ public class Fridge {
     private Long id;
     @Column
     private String name;
-    @OneToOne
-    @JoinColumn(name = "user_id")
+    @ManyToOne
+    @JoinColumn(name = "owner_id")
     private User owner;
+    @OneToMany(mappedBy = "fridge")
+    private List<User> users = new ArrayList<>();
     @OneToMany(
-            mappedBy = "fridgeId",
+            mappedBy = "fridge",
             cascade = CascadeType.REMOVE,
             orphanRemoval = true
     )
     private List<ItemRecord> items = new ArrayList<>();
     @OneToMany(
-            mappedBy = "fridgeId",
+            mappedBy = "fridge",
             cascade = CascadeType.REMOVE,
             orphanRemoval = true
     )

@@ -1,5 +1,6 @@
 package com.example.smartfridge.entities;
 
+import com.example.smartfridge.enums.FridgeInviteStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -24,7 +25,7 @@ public class FridgeInvites {
     private User invitedUser;
     @ManyToOne
     @JoinColumn(name = "fridge_id")
-    private Fridge fridgeId;
+    private Fridge fridge;
     @Column
-    private String status;
+    private FridgeInviteStatus status;
 }

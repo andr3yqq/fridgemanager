@@ -20,3 +20,25 @@ This project currently in development, so some features may not work correctly o
 - Hibernate (JPA)
 - REST API
 - React
+
+## Backend history pagination
+
+The item history endpoints accept `offset` (default `0`) and `limit` (default `50`, maximum `100`):
+
+- `/api/fridge/items/{id}/history`
+- `/api/grocery/{listId}/history`
+- `/api/grocery/items/{id}/history`
+
+These parameters page through JaVers snapshots, newest first. A snapshot can contain several field changes, so the
+number of returned changes can exceed `limit`. Advance `offset` by `limit` to read the next page.
+
+`/api/fridge/items` accepts zero-based `page` (default `0`), `size` (default `20`), and `sort`
+(default `expirationDate,asc`). It returns a Spring Data page with `content`, `totalElements`, and `totalPages`.
+
+`/api/fridge/activity` (also `/api/fridge/logs`) accepts zero-based `page` (default `0`) and `size`
+(default `50`, maximum `100`). It returns a Spring Data slice: read entries from `content` and use `last`
+to determine whether another page exists. Activity is always ordered by timestamp descending. Offsets
+(`page * effective size`) above `10000` return HTTP 400.
+
+Activity pages count visible activity entries. The service scans audit snapshots in batches as needed,
+without a fixed history scan cutoff. For example, request `/api/fridge/activity?page=1&size=50` for the second page.

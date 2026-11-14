@@ -1,11 +1,8 @@
 package com.example.smartfridge.controllers;
 
-import com.example.smartfridge.dtos.GroceryItemDto;
-import com.example.smartfridge.dtos.GroceryListDto;
-import com.example.smartfridge.dtos.ItemRecordDto;
+import com.example.smartfridge.dtos.*;
 import com.example.smartfridge.services.GroceryService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,7 +11,6 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:3000")
 @RequestMapping("/api/grocery")
 public class GroceryController {
 
@@ -31,72 +27,66 @@ public class GroceryController {
         return ResponseEntity.ok(list);
     }
 
-    @PostMapping("/{name}")
-    public ResponseEntity<GroceryListDto> createList(@PathVariable String name, @RequestBody String description) {
-        GroceryListDto createdList = groceryService.createList(name, description);
-        return ResponseEntity.created(URI.create(createdList.getId().toString())).body(createdList);
+    @GetMapping("/{listId}/history")
+    public ResponseEntity<List<ItemChangeDto>> getGroceryListHistory(@PathVariable Long listId,
+                                                                     @RequestParam(defaultValue = "0") int offset,
+                                                                     @RequestParam(defaultValue = "50") int limit) {
+        return ResponseEntity.ok(groceryService.getGroceryListHistory(listId, offset, limit));
+    }
+
+    @PostMapping
+    public ResponseEntity<GroceryListDto> createList(@RequestBody GroceryListCreateDto dto) {
+        GroceryListDto createdList = groceryService.createList(dto.getName(), dto.getDescription());
+        return ResponseEntity.created(URI.create("/api/grocery/" + createdList.getId().toString())).body(createdList);
     }
 
     @DeleteMapping("/{listId}")
-    public ResponseEntity<GroceryListDto> deleteList(@PathVariable Long listId) {
-        GroceryListDto deletedList = groceryService.deleteList(listId);
-        return ResponseEntity.ok(deletedList);
+    public ResponseEntity<Void> deleteList(@PathVariable Long listId) {
+        groceryService.deleteList(listId);
+        return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{id}/items")
-    public ResponseEntity<List<GroceryItemDto>> getItemsByListId(@PathVariable Long id) {
-        List<GroceryItemDto> items = groceryService.getItemsByListId(id);
+    @GetMapping("/{listId}/items")
+    public ResponseEntity<List<GroceryItemDto>> getItemsByListId(@PathVariable Long listId) {
+        List<GroceryItemDto> items = groceryService.getItemsByListId(listId);
         return ResponseEntity.ok(items);
     }
 
-    @PostMapping("/add/{id}")
-    public ResponseEntity<GroceryItemDto> addItemToList(@RequestBody GroceryItemDto groceryItemDto, @PathVariable Long id) {
-        return ResponseEntity.ok(groceryService.addItemToList(groceryItemDto, id));
+    @GetMapping("/items/{id}/history")
+    public ResponseEntity<List<ItemChangeDto>> getGroceryItemHistory(@PathVariable Long id,
+                                                                     @RequestParam(defaultValue = "0") int offset,
+                                                                     @RequestParam(defaultValue = "50") int limit) {
+        return ResponseEntity.ok(groceryService.getGroceryItemHistory(id, offset, limit));
     }
 
-    @DeleteMapping("/items/{id}")
-    public ResponseEntity<GroceryItemDto> deleteItemFromList(@PathVariable Long id) {
-        return ResponseEntity.ok(groceryService.deleteItem(id));
+    @PostMapping("/{listId}/items")
+    public ResponseEntity<GroceryItemDto> addItemToList(@RequestBody GroceryItemDto groceryItemDto, @PathVariable Long listId) {
+        return ResponseEntity.ok(groceryService.addItemToList(groceryItemDto, listId));
+    }
+
+    @DeleteMapping("/{listId}/items/{id}")
+    public ResponseEntity<Void> deleteItemFromList(@PathVariable Long id) {
+        groceryService.deleteItem(id);
+        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{listId}")
-    public ResponseEntity<GroceryListDto> updateList(@RequestBody GroceryListDto groceryListDto) {
-        return ResponseEntity.ok(groceryService.updateList(groceryListDto.getId(), groceryListDto.getName(), groceryListDto.getDescription()));
+    public ResponseEntity<GroceryListDto> updateList(@RequestBody GroceryListDto groceryListDto, @PathVariable Long listId) {
+        return ResponseEntity.ok(groceryService.updateList(listId, groceryListDto));
     }
 
     @PutMapping("/items/{id}")
-    public ResponseEntity<GroceryItemDto> updateItem(@RequestBody GroceryItemDto groceryItemDto) {
-        return ResponseEntity.ok(groceryService.updateItem(groceryItemDto));
+    public ResponseEntity<GroceryItemDto> updateItem(@PathVariable Long id, @RequestBody GroceryItemDto groceryItemDto) {
+        return ResponseEntity.ok(groceryService.updateItem(id, groceryItemDto));
     }
 
     @PatchMapping("/items/{itemId}/purchase")
     public ResponseEntity<GroceryItemDto> togglePurchaseItem(@PathVariable Long itemId, @RequestParam boolean purchased) {
-        try {
-            GroceryItemDto updatedItem = groceryService.toggleItemPurchased(itemId, purchased);
-            if (updatedItem == null) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            }
-            return ResponseEntity.ok(updatedItem);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        return ResponseEntity.ok(groceryService.toggleItemPurchased(itemId, purchased));
     }
 
     @PostMapping("/{listId}/move-to-fridge")
-    public ResponseEntity<?> movePurchasedToFridge(@PathVariable Long listId, @RequestBody List<ItemRecordDto> items) {
-        try {
-            groceryService.movePurchasedItemsToFridge(listId, items);
-            return ResponseEntity.ok().body("All purchased items moved to fridge successfully.");
-        } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (SecurityException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("An unexpected error occurred: " + e.getMessage());
-        }
+    public ResponseEntity<List<ItemRecordDto>> movePurchasedToFridge(@PathVariable Long listId, @RequestBody List<ItemRecordDto> items) {
+        return ResponseEntity.ok(groceryService.copyPurchasedItemsToFridge(listId, items));
     }
-
-
 }

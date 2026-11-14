@@ -13,16 +13,13 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface ItemMapper {
 
-    @Mapping(source = "fridgeId.id", target = "fridgeId")
+    @Mapping(source = "fridge.id", target = "fridgeId")
     ItemRecordDto toItemRecordDto(ItemRecord itemRecord);
 
-    @Mapping(source = "fridgeId", target = "fridgeId", qualifiedByName = "fridgeIdToFridge")
+    @Mapping(source = "fridgeId", target = "fridge", qualifiedByName = "fridgeIdToFridge")
     ItemRecord toItemRecord(ItemRecordDto itemRecordDto);
 
     List<ItemRecordDto> toItemRecordDtoList(List<ItemRecord> itemRecords);
-
-    @Mapping(source = "fridgeId", target = "fridgeId", qualifiedByName = "fridgeIdToFridge")
-    void updateItemRecord(ItemRecordDto itemRecordDto, @MappingTarget ItemRecord itemRecord);
 
     @Named("fridgeIdToFridge")
     default Fridge fridgeIdToFridge(Long id) {
@@ -33,5 +30,9 @@ public interface ItemMapper {
         fridge.setId(id);
         return fridge;
     }
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "fridge", ignore = true)
+    void updateItemRecordFromDto(ItemRecordDto itemRecordDto, @MappingTarget ItemRecord itemRecord);
 
 }

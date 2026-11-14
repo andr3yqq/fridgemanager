@@ -6,6 +6,7 @@ import com.example.smartfridge.entities.GroceryList;
 import com.example.smartfridge.entities.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
 
 import java.util.List;
@@ -21,6 +22,11 @@ public interface GroceryListMapper {
     @Mapping(source = "fridgeId", target = "fridge", qualifiedByName = "fridgeIdToFridge")
     @Mapping(source = "userId", target = "user", qualifiedByName = "userIdToUser")
     GroceryList toGroceryList(GroceryListDto groceryListDto);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "fridge", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    void updateGroceryListFromDto(GroceryListDto groceryListDto, @MappingTarget GroceryList groceryList);
 
     @Named("userIdToUser")
     default User userIdToUser(Long id) {

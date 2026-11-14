@@ -1,14 +1,19 @@
 package com.example.smartfridge.security;
 
-import com.example.smartfridge.services.AuthenticationService;
+import com.example.smartfridge.services.CustomUserDetailsService;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -19,8 +24,9 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
 
-    private final JwtProvider jwtUtil;
-    private final AuthenticationService authenticationService;
+    private final JwtProvider jwtProvider;
+    private final CustomUserDetailsService customUserDetailsService;
+    private final Logger log = LoggerFactory.getLogger(JwtFilter.class);
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -34,13 +40,19 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         String token = authHeader.substring(7);
+
+        if (token.isBlank()) {
+            chain.doFilter(request, response);
+            return;
+        }
         try {
-            String username = jwtUtil.extractUsername(token);
+            Claims claims = jwtProvider.parseClaims(token);
+            String username = claims.getSubject();
 
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = authenticationService.loadUserByUsername(username);
+                UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
 
-                if (jwtUtil.validateToken(token, userDetails.getUsername())) {
+                if (userDetails.isEnabled() && userDetails.isAccountNonLocked() && username.equals(userDetails.getUsername())) {
                     UsernamePasswordAuthenticationToken authToken =
                             new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 
@@ -49,9 +61,12 @@ public class JwtFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
-        }
-        catch (Exception e) {
-            System.out.println("jwtFilter: " + e.getMessage());
+        } catch (JwtException | IllegalArgumentException e) {
+            log.debug("Invalid JWT: {}", e.getClass().getSimpleName());
+            SecurityContextHolder.clearContext();
+        } catch (UsernameNotFoundException e) {
+            log.debug("Username not found: {}", e.getClass().getSimpleName());
+            SecurityContextHolder.clearContext();
         }
         chain.doFilter(request, response);
     }

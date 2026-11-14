@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.javers.core.metamodel.annotation.DiffIgnore;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -24,5 +25,6 @@ public class GroceryItem {
     private boolean purchased = false;
     @ManyToOne
     @JoinColumn(name = "grocery_list_id")
+    @DiffIgnore
     private GroceryList groceryList;
 }
